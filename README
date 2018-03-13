@@ -1,0 +1,4 @@
+Timetell data importer
+===
+
+This project imports Timetell data it receives through POST requests into a Postgress database.

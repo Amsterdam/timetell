@@ -1,0 +1,19 @@
+# virtualenv
+.venv
+
+# IntelliJ:
+/.idea/**
+/*.iml
+
+# Python ephemerals:
+**/__pycache__/
+**/*.pyc
+*.egg-info
+.eggs
+.ipynb_checkpoints/
+*.ipynb
+
+# Test and Example side-effects:
+/.cache/
+/data/
+
