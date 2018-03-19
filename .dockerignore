@@ -1,0 +1,17 @@
+# ignore all...
+*
+
+# except a few
+!src
+!tests
+!setup.py
+!setup.cfg
+!MANIFEST.in
+!README
+!LICENSE.rst
+!Makefile
+!**/*.yml
+!exampleconfig.yml
+
+# exclude some yaml
+docker-compose.yml

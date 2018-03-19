@@ -28,7 +28,8 @@ setup(
     ],
     entry_points={
         'console_scripts': [
-            'timetell-importer=timetell.main:main'
+            'timetelld=timetell.main:main',
+            'timetellcsvimporter=timetell.csvimporter:cli'
         ]
     },
 

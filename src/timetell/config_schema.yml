@@ -26,6 +26,9 @@ definitions:
         type: string
       apikey:
         type: string
+      baseurl:
+        type: string
+        pattern: '/$'  # must end in a slash
     required:
     - apikey
     type: object

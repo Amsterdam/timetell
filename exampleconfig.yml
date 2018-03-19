@@ -1,5 +1,7 @@
 web:
+  bindport: 8000
   apikey: testkey
+  baseurl: http://localhost:8000/
 
 logging:
   formatters:
