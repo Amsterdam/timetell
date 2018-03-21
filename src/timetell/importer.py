@@ -522,7 +522,6 @@ _logger: logging.Logger = logging.getLogger(__name__)
 
 async def initialize(
         dsn: str,
-        eventloop: asyncio.AbstractEventLoop=None,
         max_conn_retry: int=5,
         conn_retry_interval_secs: int=2
 ):
@@ -538,8 +537,7 @@ async def initialize(
     if _pool is not None:
         return
 
-    if eventloop is None:
-        eventloop = asyncio.get_event_loop()
+    eventloop = asyncio.get_event_loop()
 
     # create asyncpg engine
     _logger.debug("Connecting to database")
@@ -712,22 +710,6 @@ async def publish():
 def cli():
     """ Simple CLI to run an import from files on the filesystem. """
 
-    # create eventloop
-    asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
-    eventloop = asyncio.get_event_loop()
-
-    def parseargs():
-        parser = argparse.ArgumentParser(description='Timetell CSV importer')
-        parser.add_argument(
-            'csvdir', metavar='PATH', help='path to parent dir of csv files')
-        parser.add_argument(
-            'dsn', metavar='DSN', help='postgresql connection string')
-        parser.add_argument(
-            '-v', '--verbose', dest='loglevel', action='store_const',
-            const=logging.DEBUG, default=logging.INFO,
-            help='set debug loglevel (default INFO)')
-        return parser.parse_args()
-
     async def csv_generator(tablename) -> T.AsyncGenerator:
         f = (csv_dir / ('TT_' + tablename + '.csv')).open(newline='', encoding='WINDOWS-1252')
         try:
@@ -736,23 +718,22 @@ def cli():
         finally:
             f.close()
 
-    def run_import():
-        try:
-            # run import
-            coros = []
-            for tablename in _TABLESETTINGS:
-                coros.append(populate(tablename, csv_generator(tablename)))
-            eventloop.run_until_complete(asyncio.gather(*coros))
-            # create constraints
-            for tablename in _TABLESETTINGS:
-                # we need to do this one-by-one: may result in deadlocks otherwise
-                eventloop.run_until_complete(set_constraints(tablename))
-            # publish data
-            eventloop.run_until_complete(publish())
-        finally:
-            eventloop.run_until_complete(close())
+    # create eventloop
+    asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
+    eventloop = asyncio.get_event_loop()
 
-    args = parseargs()
+    parser = argparse.ArgumentParser(description='Timetell CSV importer')
+    parser.add_argument(
+        'dsn', metavar='DSN', help='postgresql connection string')
+    parser.add_argument(
+        '-d', '--csvdir', action='store', default='.', metavar='PATH',
+        help='path to parent dir of csv files')
+    parser.add_argument(
+        '-v', '--verbose', dest='loglevel', action='store_const',
+        const=logging.DEBUG, default=logging.INFO,
+        help='set debug loglevel (default INFO)')
+    args = parser.parse_args()
+
     # init logging
     logging.basicConfig(level=args.loglevel)
     # make sure CSV dir exists
@@ -761,9 +742,22 @@ def cli():
         _logger.fatal("directory {} doesn't exist".format(csv_dir))
     dsn = args.dsn
     # initialize database
-    eventloop.run_until_complete(initialize(dsn, eventloop))
+    eventloop.run_until_complete(initialize(dsn))
     # run import
-    run_import()
+    try:
+        # run import
+        coros = []
+        for tablename in _TABLESETTINGS:
+            coros.append(populate(tablename, csv_generator(tablename)))
+        eventloop.run_until_complete(asyncio.gather(*coros))
+        # create constraints
+        for tablename in _TABLESETTINGS:
+            # we need to do this one-by-one: may result in deadlocks otherwise
+            eventloop.run_until_complete(set_constraints(tablename))
+        # publish data
+        eventloop.run_until_complete(publish())
+    finally:
+        eventloop.run_until_complete(close())
 
 
 if __name__ == '__main__':

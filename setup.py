@@ -28,7 +28,8 @@ setup(
     ],
     entry_points={
         'console_scripts': [
-            'ttli=timetell.importer:cli'
+            'ttli=timetell.importer:cli',
+            'ttldl=timetell.downloader:cli'
         ]
     },
 
@@ -52,6 +53,7 @@ setup(
         'pytest-runner'
     ],
     install_requires=[
+        'aiohttp',  # for downloading files from objectstore
         'asyncpg',  # async postgres driver
         'uvloop',  # optional fast eventloop for asyncio
     ],
