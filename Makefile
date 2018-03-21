@@ -36,16 +36,6 @@ install: cleanpy
 	@echo -n 'Installing... '
 	@pip3 install --quiet --upgrade --upgrade-strategy eager -e . && echo 'OK' || echo 'FAILED'
 
-dist: cleanpy
-	$(PYTHON) setup.py sdist
-
-upload: cleanpy
-	$(PYTHON) setup.py sdist upload
-
-example: cleanpy
-	@echo Starting timetell import service
-	@timetelld --config-path=exampleconfig.yml
-
 
 # ┏━━━━━━━━━━━━━┓
 # ┃ Cleaning up ┃

@@ -28,8 +28,7 @@ setup(
     ],
     entry_points={
         'console_scripts': [
-            'timetelld=timetell.main:main',
-            'timetellcsvimporter=timetell.csvimporter:cli'
+            'ttli=timetell.importer:cli'
         ]
     },
 
@@ -53,30 +52,17 @@ setup(
         'pytest-runner'
     ],
     install_requires=[
-        'aiohttp',
-        'jsonschema',
-        'PyYaml',
-
-        # for postgres storage plugin
-        'asyncpg', # postgres plugin
-
-        # Recommended by aiohttp docs:
-        'aiodns',    # optional asynchronous DNS client
-        'uvloop',    # optional fast eventloop for asyncio
+        'asyncpg',  # async postgres driver
+        'uvloop',  # optional fast eventloop for asyncio
     ],
     extras_require={
-        'dev': [
-            'aiohttp-devtools'
-        ],
         'test': [
             'pytest',
             'pytest-cov',
-            'pytest-aiohttp',
         ],
     },
     # To keep PyCharm from complaining about missing requirements:
     tests_require=[
         'pytest',
-        'pytest-aiohttp',
     ],
 )

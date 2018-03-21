@@ -11,7 +11,3 @@
 !LICENSE.rst
 !Makefile
 !**/*.yml
-!exampleconfig.yml
-
-# exclude some yaml
-docker-compose.yml

@@ -1,3 +1,6 @@
+"""
+csvimporter
+"""
 import argparse
 import asyncio
 import collections.abc
@@ -12,20 +15,6 @@ import typing as T
 import asyncpg.pool
 import uvloop
 
-CONNECT_ATTEMPT_MAX_TRIES = 5
-CONNECT_ATTEMPT_INTERVAL_SECS = 2
-
-_QUERY_COLUMNDEF = """
-SELECT column_name, data_type
-  FROM information_schema.columns
- WHERE table_name='{tablename}'
-   AND table_schema='{schemaname}';
-"""
-_QUERY_CREATE_SCHEMA = 'CREATE SCHEMA "{schemaname}";'
-_QUERY_PUBLISH_SCHEMA = """
-DROP SCHEMA "public" CASCADE;
-ALTER SCHEMA "{schemaname}" RENAME TO "public";
-"""
 _TABLESETTINGS = collections.OrderedDict(
     ACT={
         'create': """
@@ -531,7 +520,12 @@ _importschema: str = None
 _logger: logging.Logger = logging.getLogger(__name__)
 
 
-async def initialize(eventloop: asyncio.AbstractEventLoop, dsn: str):
+async def initialize(
+        dsn: str,
+        eventloop: asyncio.AbstractEventLoop=None,
+        max_conn_retry: int=5,
+        conn_retry_interval_secs: int=2
+):
     # language=rst
     """ Initialize the plugin.
 
@@ -544,9 +538,12 @@ async def initialize(eventloop: asyncio.AbstractEventLoop, dsn: str):
     if _pool is not None:
         return
 
+    if eventloop is None:
+        eventloop = asyncio.get_event_loop()
+
     # create asyncpg engine
     _logger.debug("Connecting to database")
-    connect_attempt_tries_left = CONNECT_ATTEMPT_MAX_TRIES - 1
+    connect_attempt_tries_left = max_conn_retry - 1
     while connect_attempt_tries_left >= 0:
         try:
             _pool = await asyncpg.create_pool(dsn, loop=eventloop)
@@ -556,7 +553,7 @@ async def initialize(eventloop: asyncio.AbstractEventLoop, dsn: str):
                     "Database not accepting connections. Retrying %d more times.",
                     connect_attempt_tries_left)
                 connect_attempt_tries_left -= 1
-                await asyncio.sleep(CONNECT_ATTEMPT_INTERVAL_SECS)
+                await asyncio.sleep(conn_retry_interval_secs)
             else:
                 _logger.error("Could not connect to the database. Aborting.")
                 raise
@@ -565,66 +562,62 @@ async def initialize(eventloop: asyncio.AbstractEventLoop, dsn: str):
     _logger.debug("Connected to database.")
 
     # register shutdown hook
-    def shutdown_signel_handler():
-        eventloop.run_until_complete(_shutdown())
+    def shutdown_signal_handler():
+        eventloop.run_until_complete(close())
     for s in (signal.SIGINT, signal.SIGQUIT, signal.SIGTERM, signal.SIGHUP):
-        eventloop.add_signal_handler(s, shutdown_signel_handler)
+        eventloop.add_signal_handler(s, shutdown_signal_handler)
 
     # create import schemaname
     _importschema = secrets.token_hex(4)
-
     try:
         # initialize schema
-        await _pool.execute(_QUERY_CREATE_SCHEMA.format(schemaname=_importschema))
-        _logger.debug("Temp schema created: %s", _importschema)
-
-        # initialize tables
-        for tablename, settings in _TABLESETTINGS.items():
-            await _pool.execute(settings['create'].format(schemaname=_importschema, tablename=tablename))
-            _logger.debug("Table created: %s", tablename)
+        await _pool.execute('CREATE SCHEMA "{}";'.format(_importschema))
     except:
-        await _shutdown()
+        await close()
         raise
+    _logger.debug("Temp schema created: %s", _importschema)
 
 
-async def _shutdown():
-    logging.info("Killing db connection...")
-    await _pool.close()
-    logging.info("Done")
+async def close():
+    global _pool
+    if _pool is not None:
+        logging.debug("Killing db connection...")
+        await _pool.close()
+        _pool = None
+        logging.debug("Done")
 
 
-def _float(s: str) -> float:
-    return float(s.replace(',', '.') or '0')
+async def _fieldconverters(tablename: str, headers: T.Tuple[str, ...]) -> T.Tuple[T.Callable, ...]:
 
+    def _float(s: str) -> float:
+        return float(s.replace(',', '.') or '0')
 
-def _int(s: str) -> int:
-    return int(s or '0')
+    def _int(s: str) -> int:
+        return int(s or '0')
 
+    def _date(s: str) -> T.Optional[datetime]:
+        if s == '':
+            return None
+        return datetime.strptime(s, '%d-%m-%Y')
 
-def _date(s: str) -> datetime:
-    if s == '':
-        return None
-    return datetime.strptime(s, '%d-%m-%Y')
+    def _timestamp(s: str) -> T.Optional[datetime]:
+        if s == '':
+            return None
+        return datetime.strptime(s, '%d-%m-%Y %H:%M')
 
+    def _id_field(s: str) -> T.Optional[int]:
+        if s == '' or s == '0':
+            return None
+        return _int(s)
 
-def _timestamp(s: str) -> datetime:
-    if s == '':
-        return None
-    return datetime.strptime(s, '%d-%m-%Y %H:%M')
+    q = """
+SELECT column_name, data_type
+  FROM information_schema.columns
+ WHERE table_name='{tablename}'
+   AND table_schema='{schemaname}';
+""".format(tablename=tablename, schemaname=_importschema)
 
-
-def _id_field(s: str) -> T.Optional[int]:
-    if s == '' or s == '0':
-        return None
-    return _int(s)
-
-
-async def import_csv(reader: T.AsyncGenerator, tablename: str) -> int:
-    _logger.debug("Importing data into %s", tablename)
-    # first get data type converters based on column data types
-    coldefs = await _pool.fetch(
-        _QUERY_COLUMNDEF.format(tablename=tablename, schemaname=_importschema)
-    )
+    coldefs = await _pool.fetch(q)
     columns = {}
     for column in coldefs:
         dt = column['data_type']
@@ -645,10 +638,6 @@ async def import_csv(reader: T.AsyncGenerator, tablename: str) -> int:
         else:
             raise Exception("Unknown column datatype: ", dt)
 
-    # now get the column names from the reader
-    # here we strip the TT_ prefix and lowercase everything
-    headers = list(map(lambda c: c.lower()[3:], await reader.__anext__()))
-
     # make sure we have all headers we expect
     if set(headers) != set(columns.keys()):
         raise Exception(
@@ -657,7 +646,23 @@ async def import_csv(reader: T.AsyncGenerator, tablename: str) -> int:
     _logger.debug("Headers found and matching table definition: %s", headers)
 
     # order the type converters
-    convs = [columns[c] for c in headers]
+    return tuple(columns[c] for c in headers)
+
+
+async def populate(tablename: str, reader: T.AsyncGenerator) -> int:
+    _logger.debug("Importing data into %s", tablename)
+
+    # first create the table
+    settings = _TABLESETTINGS[tablename]
+    await _pool.execute(settings['create'].format(schemaname=_importschema, tablename=tablename))
+    _logger.debug("Table created: %s", tablename)
+
+    # get the column names from the reader
+    # here we strip the TT_ prefix and lowercase everything
+    headers = tuple(map(lambda c: c.lower()[3:], await reader.__anext__()))
+
+    # get the field converters for this table
+    convs = await _fieldconverters(tablename, headers)
 
     # create the insert query
     q = 'INSERT INTO "{}"."{}" ('.format(_importschema, tablename) + \
@@ -684,142 +689,7 @@ async def import_csv(reader: T.AsyncGenerator, tablename: str) -> int:
     return numrows
 
 
-class _ProjectTree(collections.abc.Iterable):
-
-    def __init__(self):
-        self._projects = dict()
-        self._roots = []
-        self._frozen = False
-
-    def add(self, project_id: int, budget: int, hours: int, parent_id: T.Optional[int]):
-        assert not self._frozen, "Project tree is frozen"
-        project = {
-            'id': project_id,
-            'parent_id': parent_id,
-            'budget': budget,
-            'hours': hours,
-            'costs': 0
-        }
-        if parent_id is None:
-            self._roots.append(project)
-        self._projects[project_id] = project
-
-    def _freeze(self):
-        if self._frozen:
-            return
-        self._frozen = True
-        budgets = [(pid, p['budget']) for pid, p in self._projects.items() if p['budget'] > 0]
-        hours = [(pid, p['hours']) for pid, p in self._projects.items() if p['hours'] > 0]
-        for pid, budget in budgets:
-            self._propagate_value(pid, budget, 'budget')
-        for pid, h in hours:
-            self._propagate_value(pid, h, 'hours')
-
-    def _propagate_value(self, project_id: int, value: int, field: str):
-        if not self._frozen:
-            self._freeze()
-        if project_id not in self._projects:
-            _logger.critical("Projectid %s not found while %d %s!", project_id, value, field)
-            raise KeyError
-        self._projects[project_id][field] += value
-        parent_id = self._projects[project_id]['parent_id']
-        while parent_id is not None and parent_id in self._projects:
-            self._projects[parent_id][field] += value
-            parent_id = self._projects[parent_id]['parent_id']
-
-    def setcosts(self, project_id: int, costs: int):
-        self._propagate_value(project_id, costs, 'costs')
-
-    def printtree(self):
-        _logger.debug('Printing tree...')
-        sep = '|-- '
-        def doprint(project_id, level=0):
-            costs = self._projects[project_id]['costs']
-            budget = self._projects[project_id]['budget']
-            hours = self._projects[project_id]['hours']
-            _logger.debug((sep * level) + "{}: budget={}, hours={}, costs={}".format(project_id, budget, hours, costs))
-            children = [pid for (pid, p) in self._projects.items() if p['parent_id'] == project_id]
-            for pid in children:
-                doprint(pid, level+1)
-        for root in self._roots:
-            _logger.debug('===================')
-            doprint(root['id'])
-        _logger.debug('===================')
-
-    def __iter__(self):
-        for k, v in self._projects.items():
-            yield k, v
-
-
-def prj_aggregator(reader: T.AsyncGenerator) -> T.Tuple[_ProjectTree, T.AsyncGenerator]:
-    """This function generates the project tree while yielding prj table rows"""
-    projects = _ProjectTree()
-    async def aggregator():
-        # first yield the headers
-        headers = await reader.__anext__()
-        for i in range(len(headers)):
-            if headers[i] == 'TT_PRJ_ID':
-                project_id_idx = i
-            elif headers[i] == 'TT_PARENT_ID':
-                parent_id_idx = i
-            elif headers[i] == 'TT_CALC_COSTS':
-                budget_idx = i
-            elif headers[i] == 'TT_CALC_HOURS':
-                hours_idx = i
-        yield headers
-        # now add project relations to the tree while yielding
-        async for row in reader:
-            project_id = _id_field(row[project_id_idx])
-            budget = _float(row[budget_idx])
-            hours = _float(row[hours_idx])
-            parent_id = _id_field(row[parent_id_idx])
-            projects.add(project_id, budget, hours, parent_id)
-            yield row
-    return projects, aggregator()
-
-
-def hrs_aggregator(reader: T.AsyncGenerator) -> T.Tuple[dict, T.AsyncGenerator]:
-    """This function creates an aggregator function for the TT_HRS table"""
-    aggregations = collections.defaultdict(int)
-    async def aggregator():
-        # first yield the headers
-        headers = await reader.__anext__()
-        for i in range(len(headers)):
-            if headers[i] == 'TT_PRJ_ID':
-                prj_id_idx = i
-            elif headers[i] == 'TT_HOURSINTERNALRATE':
-                rate_idx = i
-        yield headers
-        # now aggregate costs per project
-        async for row in reader:
-            costs = _float(row[rate_idx])
-            if costs > 0:
-                pid = _id_field(row[prj_id_idx])
-                if pid is None:
-                    _logger.warn("Costs (%d) added without project", costs)
-                else:
-                    aggregations[pid] += costs
-            yield row
-    return aggregations, aggregator()
-
-
-async def insert_prj_aggregations(projects: _ProjectTree):
-    _logger.debug("Updating project budget and costs in PRJ table")
-    # add column
-    q = 'ALTER TABLE "{}"."PRJ" ADD COLUMN hoursinternalrate integer;'.format(_importschema)
-    await _pool.execute(q)
-    # prepare update query
-    async with _pool.acquire() as con:
-        stmt = await con.prepare(
-                'UPDATE "{}"."PRJ" SET hoursinternalrate = $1, calc_costs = $2, '
-                'calc_hours = $3 WHERE prj_id = $4;'.format(_importschema))
-        for pid, p in projects:
-            # insert the row
-            await stmt.fetch(p['costs'], p['budget'], p['hours'], pid)
-    _logger.debug("Done updating project budget and costs in PRJ table")
-
-
-async def create_constraints(tablename: str):
+async def set_constraints(tablename: str):
     _logger.debug("Creating constraints on table %s", tablename)
     if tablename not in _TABLESETTINGS:
         raise Exception("Don't know table {}".format(tablename))
@@ -833,12 +703,18 @@ async def create_constraints(tablename: str):
 
 
 async def publish():
-    await _pool.execute(_QUERY_PUBLISH_SCHEMA.format(schemaname=_importschema))
+    q = 'DROP SCHEMA "public" CASCADE; ' \
+        'ALTER SCHEMA "{}" RENAME TO "public";'.format(_importschema)
+    await _pool.execute(q)
     _logger.debug("Published imported data in the public schema (existing tables are removed)")
 
 
 def cli():
     """ Simple CLI to run an import from files on the filesystem. """
+
+    # create eventloop
+    asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
+    eventloop = asyncio.get_event_loop()
 
     def parseargs():
         parser = argparse.ArgumentParser(description='Timetell CSV importer')
@@ -860,33 +736,21 @@ def cli():
         finally:
             f.close()
 
-    def run_import(eventloop):
-        cost_aggregations, projects = None, None
+    def run_import():
         try:
             # run import
             coros = []
             for tablename in _TABLESETTINGS:
-                if tablename == 'HRS':
-                    cost_aggregations, agg = hrs_aggregator(csv_generator(tablename))
-                    coros.append(import_csv(agg, tablename))
-                elif tablename == 'PRJ':
-                    projects, agg = prj_aggregator(csv_generator(tablename))
-                    coros.append(import_csv(agg, tablename))
-                else:
-                    coros.append(import_csv(csv_generator(tablename), tablename))
+                coros.append(populate(tablename, csv_generator(tablename)))
             eventloop.run_until_complete(asyncio.gather(*coros))
-            # add cost aggregations
-            for project_id, costs in cost_aggregations.items():
-                projects.setcosts(project_id, costs)
-            eventloop.run_until_complete(insert_prj_aggregations(projects))
             # create constraints
             for tablename in _TABLESETTINGS:
                 # we need to do this one-by-one: may result in deadlocks otherwise
-                eventloop.run_until_complete(create_constraints(tablename))
+                eventloop.run_until_complete(set_constraints(tablename))
             # publish data
             eventloop.run_until_complete(publish())
         finally:
-            eventloop.run_until_complete(_shutdown())
+            eventloop.run_until_complete(close())
 
     args = parseargs()
     # init logging
@@ -896,13 +760,10 @@ def cli():
     if not csv_dir.exists():
         _logger.fatal("directory {} doesn't exist".format(csv_dir))
     dsn = args.dsn
-    # create eventloop
-    asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
-    eventloop = asyncio.get_event_loop()
     # initialize database
-    eventloop.run_until_complete(initialize(eventloop, dsn))
+    eventloop.run_until_complete(initialize(dsn, eventloop))
     # run import
-    run_import(eventloop)
+    run_import()
 
 
 if __name__ == '__main__':
