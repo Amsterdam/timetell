@@ -40,8 +40,7 @@ setup(
     package_dir={'': 'src'},
     packages=find_packages('src'),
     package_data={
-        'timetell': ['*.yml'],
-        'timetell.handlers': ['*.yml'],
+        'timetell': ['create_view.sql'],
     },
 
 

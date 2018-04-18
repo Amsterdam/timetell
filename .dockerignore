@@ -11,3 +11,4 @@
 !LICENSE.rst
 !Makefile
 !**/*.yml
+!**/*.sql
