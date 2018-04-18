@@ -8,8 +8,10 @@ import csv
 from datetime import datetime
 import logging
 import pathlib
+import pkg_resources
 import secrets
 import signal
+import time
 import typing as T
 
 import asyncpg.pool
@@ -518,6 +520,7 @@ ALTER TABLE "{schemaname}"."{tablename}"
 _pool: asyncpg.pool.Pool = None
 _importschema: str = None
 _logger: logging.Logger = logging.getLogger(__name__)
+_view_query = None
 
 
 async def initialize(
@@ -707,6 +710,17 @@ async def publish():
     _logger.debug("Published imported data in the public schema (existing tables are removed)")
 
 
+async def create_view():
+    global _view_query
+    if _view_query is None:
+        _view_query = pkg_resources.resource_string(
+            __name__, 'create_view.sql'
+        ).decode('utf-8').format(schemaname=_importschema)
+    now = int(time.time())
+    await _pool.execute(_view_query)
+    _logger.debug("Created view in ~%d seconds", int(time.time()) - now)
+
+
 def cli():
     """ Simple CLI to run an import from files on the filesystem. """
 
@@ -754,6 +768,8 @@ def cli():
         for tablename in _TABLESETTINGS:
             # we need to do this one-by-one: may result in deadlocks otherwise
             eventloop.run_until_complete(set_constraints(tablename))
+        # after all is done we can create the view needed by Tableau
+        eventloop.run_until_complete(create_view())
         # publish data
         eventloop.run_until_complete(publish())
     finally:
