@@ -228,7 +228,7 @@ CREATE TABLE IF NOT EXISTS "{schemaname}"."{tablename}" (
     parent_id integer,
     fromdate date,
     todate date,
-    name character varying(512) NOT NULL,
+    name character varying(75) NOT NULL,
     nr character varying(20),
     code character varying(20),
     "group" integer,
