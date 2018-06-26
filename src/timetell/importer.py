@@ -517,6 +517,21 @@ ALTER TABLE "{schemaname}"."{tablename}"
     }
 )
 
+_CUSTOMER_SETTINGS = dict(
+    datapunt=dict(
+        tables=_TABLESETTINGS.keys(),
+        sql=pkg_resources.resource_string(
+            __name__, 'datapunt.sql'
+        ).decode('utf-8')
+    ),
+    sociaal=dict(
+        tables=(
+            'ACT', 'EMP', 'ORG', 'CUST', 'EMP_CONTRACT', 'EMP_ORG', 'PRJ',
+            'PRJ_LINK', 'SYS_PRJ_NIV', 'HRS'
+        ),
+    )
+)
+
 _pool: asyncpg.pool.Pool = None
 _importschema: str = None
 _logger: logging.Logger = logging.getLogger(__name__)
@@ -599,7 +614,10 @@ async def _fieldconverters(tablename: str, headers: T.Tuple[str, ...]) -> T.Tupl
     def _date(s: str) -> T.Optional[datetime]:
         if s == '':
             return None
-        return datetime.strptime(s, '%d-%m-%Y')
+        try:
+            return datetime.strptime(s, '%d-%m-%Y')
+        except ValueError:
+            return datetime.strptime(s, '%d-%m-%Y %H:%M')
 
     def _timestamp(s: str) -> T.Optional[datetime]:
         if s == '':
@@ -710,15 +728,13 @@ async def publish():
     _logger.debug("Published imported data in the public schema (existing tables are removed)")
 
 
-async def create_view():
-    global _view_query
-    if _view_query is None:
-        _view_query = pkg_resources.resource_string(
-            __name__, 'create_view.sql'
-        ).decode('utf-8').format(schemaname=_importschema)
-    now = int(time.time())
-    await _pool.execute(_view_query)
-    _logger.debug("Created view in ~%d seconds", int(time.time()) - now)
+async def run_sql(sql: str):
+    """ Run arbitrary sql. {schemaname} placeholders will be replaced by the
+    temporary schemaname.
+
+    :param sql:
+    """
+    await _pool.execute(sql.format(schemaname=_importschema))
 
 
 def cli():
@@ -739,9 +755,10 @@ def cli():
     parser = argparse.ArgumentParser(description='Timetell CSV importer')
     parser.add_argument(
         'dsn', metavar='DSN', help='postgresql connection string')
+    parser.add_argument('customer', choices=list(_CUSTOMER_SETTINGS.keys()), help='cutomer name')
     parser.add_argument(
         '-d', '--csvdir', action='store', default='.', metavar='PATH',
-        help='path to parent dir of csv files')
+        help='dir containing csv files')
     parser.add_argument(
         '-v', '--verbose', dest='loglevel', action='store_const',
         const=logging.DEBUG, default=logging.INFO,
@@ -757,19 +774,22 @@ def cli():
     dsn = args.dsn
     # initialize database
     eventloop.run_until_complete(initialize(dsn))
+    # get customer settings
+    customer = _CUSTOMER_SETTINGS[args.customer]
     # run import
     try:
         # run import
         coros = []
-        for tablename in _TABLESETTINGS:
+        for tablename in customer['tables']:
             coros.append(populate(tablename, csv_generator(tablename)))
         eventloop.run_until_complete(asyncio.gather(*coros))
         # create constraints
-        for tablename in _TABLESETTINGS:
+        for tablename in customer['tables']:
             # we need to do this one-by-one: may result in deadlocks otherwise
             eventloop.run_until_complete(set_constraints(tablename))
-        # after all is done we can create the view needed by Tableau
-        eventloop.run_until_complete(create_view())
+        # after all is done we run extra sql
+        if 'sql' in customer:
+            eventloop.run_until_complete(run_sql(customer['sql']))
         # publish data
         eventloop.run_until_complete(publish())
     finally:

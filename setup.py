@@ -40,7 +40,7 @@ setup(
     package_dir={'': 'src'},
     packages=find_packages('src'),
     package_data={
-        'timetell': ['create_view.sql'],
+        'timetell': ['datapunt.sql'],
     },
 
 

@@ -73,20 +73,16 @@ def cli():
     parser.add_argument(
         'cloudvpsproject', metavar='PROJECTID', help='CloudVPS project ID')
     parser.add_argument(
+        'sourcedir', metavar='PATH', help='Source directory on objectstore')
+    parser.add_argument(
+        'targetdir', metavar='PATH', help='Target directory on local filesystem')
+    parser.add_argument(
         '--user', '-u', action='store', metavar='<user:password>',
         help='Specify the user name and password to use for objectstore '
              'authentication.')
     parser.add_argument(
-        '--sourcedir', '-s', action='store', metavar='PATH', default='/uploads',
-        help='Specify the sourcedir on the objectstore (default /uploads)')
-    parser.add_argument(
-        '--targetdir', '-d', action='store', metavar='PATH',
-        default='./timetelldata',
-        help='Specify the targetdir to store downloaded files in (fails if '
-             'the target exists, unless --overwrite is given)')
-    parser.add_argument(
         '--overwrite', '-o', action='store_true',
-        help='Overwrite files if target exists')
+        help='Overwrite if targetdir exists')
     parser.add_argument(
         '--verbose', '-v', dest='loglevel', action='store_const',
         const=logging.DEBUG, default=logging.INFO,
