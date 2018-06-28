@@ -528,6 +528,9 @@ _CUSTOMER_SETTINGS = dict(
             'ACT', 'EMP', 'ORG', 'CUST', 'EMP_CONTRACT', 'EMP_ORG', 'PRJ',
             'PRJ_LINK', 'SYS_PRJ_NIV', 'HRS'
         ),
+        sql=pkg_resources.resource_string(
+            __name__, 'dienstverlening.sql'
+        ).decode('utf-8')
     )
 )
 
