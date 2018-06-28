@@ -11,7 +11,6 @@ import pathlib
 import pkg_resources
 import secrets
 import signal
-import time
 import typing as T
 
 import asyncpg.pool
@@ -524,7 +523,7 @@ _CUSTOMER_SETTINGS = dict(
             __name__, 'datapunt.sql'
         ).decode('utf-8')
     ),
-    sociaal=dict(
+    dienstverlening=dict(
         tables=(
             'ACT', 'EMP', 'ORG', 'CUST', 'EMP_CONTRACT', 'EMP_ORG', 'PRJ',
             'PRJ_LINK', 'SYS_PRJ_NIV', 'HRS'
