@@ -2213,7 +2213,7 @@ CREATE MATERIALIZED VIEW "{schemaname}"."v_timetell_projectenoverzicht" AS
 /*
 Updated (new) implementation from Hans Kleijn
 */
-CREATE MATERIALIZED VIEW "{schemaname}"."v_timetell_projectenoverzicht_new" AS
+CREATE MATERIALIZED VIEW "{schemaname}"."v_timetell_projectenoverzicht_V2" AS
 SELECT
 uren.hrs_date,
 uren.hrs_hours,
