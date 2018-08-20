@@ -2211,7 +2211,7 @@ CREATE MATERIALIZED VIEW "{schemaname}"."v_timetell_projectenoverzicht" AS
                   ON "Left".prj_niv1_id = "Right".prj_id) a_1) a;
 
 /*
-Updated (new) implementation from Hans Kleijn
+V2 implementation from Hans Kleijn
 */
 CREATE MATERIALIZED VIEW "{schemaname}"."v_timetell_projectenoverzicht_V2" AS
 SELECT

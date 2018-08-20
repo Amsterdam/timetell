@@ -513,7 +513,36 @@ ALTER TABLE "{schemaname}"."{tablename}"
     ADD CONSTRAINT fk_cust_id FOREIGN KEY (cust_id) REFERENCES "{schemaname}"."CUST"(cust_id),
     ADD CONSTRAINT fk_org_id FOREIGN KEY (org_id) REFERENCES "{schemaname}"."ORG"(org_id);
         """
-    }
+    },
+    SYS_OPT_ITM={
+        'create': """
+CREATE TABLE IF NOT EXISTS "{schemaname}"."{tablename}" (
+    item_id integer,
+    opt_id integer,
+    item character varying(50) COLLATE pg_catalog."default",
+    code character varying(10),
+    updatelocal timestamp,
+    calcid integer
+);
+        """
+    },
+    VW_LABEL_PRJ={
+        'create': """
+CREATE TABLE IF NOT EXISTS "{schemaname}"."{tablename}" (   
+    dim_label_id integer not null,
+    dim_id integer,
+    "type" integer,
+    item_id integer,
+    "value" numeric,
+    "date" time without time zone,
+    "desc" character varying(50) collate pg_catalog."default",
+    tag integer,
+    tagtype integer,
+    tagdate date,
+    todate date
+);
+        """
+    },
 )
 
 _CUSTOMER_SETTINGS = dict(
@@ -626,6 +655,11 @@ async def _fieldconverters(tablename: str, headers: T.Tuple[str, ...]) -> T.Tupl
             return None
         return datetime.strptime(s, '%d-%m-%Y %H:%M')
 
+    def _time(s: str) -> T.Optional[datetime.time]:
+        if s == '':
+            return None
+        return datetime.strptime(s, '%H:%M').time()
+
     def _id_field(s: str) -> T.Optional[int]:
         if s == '' or s == '0':
             return None
@@ -646,12 +680,16 @@ SELECT column_name, data_type
             columns[column['column_name']] = _id_field
         elif dt == 'integer':
             columns[column['column_name']] = _int
+        elif dt == 'numeric':
+            columns[column['column_name']] = _int
         elif dt == 'double precision':
             columns[column['column_name']] = _float
         elif dt == 'date':
             columns[column['column_name']] = _date
         elif dt == 'timestamp without time zone':
             columns[column['column_name']] = _timestamp
+        elif dt == 'time without time zone':
+            columns[column['column_name']] = _time
         elif dt == 'character varying':
             columns[column['column_name']] = str
         elif dt == 'text':
