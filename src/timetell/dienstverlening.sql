@@ -276,7 +276,7 @@ CREATE OR REPLACE VIEW "{schemaname}"."viw_tableau_normuren_per_werkdag" AS
     a.fte / cte.aantal_werkdagen_in_jaar::double precision AS fte_per_werkdag,
     a.hours / cte.aantal_werkdagen_in_jaar::double precision AS hours_per_werkdag
    FROM "EMP_CONTRACT" a
-     JOIN viw_tableau_datum b ON b.datum >= a.fromdate AND b.datum <= a.todate
+     JOIN "{schemaname}".viw_tableau_datum b ON b.datum >= a.fromdate AND b.datum <= a.todate
      JOIN cte ON date_part('year'::text, b.datum) = cte.jaar
   WHERE b.dow_datum >= b.dow_ma AND b.dow_datum <= (b.dow_ma + 4::double precision);
   
