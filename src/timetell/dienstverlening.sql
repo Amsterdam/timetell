@@ -263,7 +263,7 @@ CREATE OR REPLACE VIEW "{schemaname}"."viw_tableau_normuren_per_werkdag" AS
  WITH cte AS (
          SELECT date_part('year'::text, viw_tableau_datum.datum) AS jaar,
             count(*) AS aantal_werkdagen_in_jaar
-           FROM viw_tableau_datum
+          FROM "{schemaname}"."viw_tableau_datum" as viw_tableau_datum
           WHERE viw_tableau_datum.dow_datum >= viw_tableau_datum.dow_ma AND viw_tableau_datum.dow_datum <= (viw_tableau_datum.dow_ma + 4::double precision)
           GROUP BY (date_part('year'::text, viw_tableau_datum.datum))
         )
