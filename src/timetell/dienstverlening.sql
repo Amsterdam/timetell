@@ -315,7 +315,7 @@ UNION ALL
     a.aantal_werkdagen_in_jaar,
     a.hours_per_werkdag,
     a.fte_per_werkdag
-   FROM viw_tableau_normuren_per_werkdag a,
+   FROM "{schemaname}"."viw_tableau_normuren_per_werkdag" a,
     ( SELECT vw_tableau_hrs.emp_id,
             min(vw_tableau_hrs.org_id) AS org_id
            FROM vw_tableau_hrs
