@@ -12,6 +12,7 @@
 .eggs
 .ipynb_checkpoints/
 *.ipynb
+*.swp
 
 # Test and Example side-effects:
 /.cache/
