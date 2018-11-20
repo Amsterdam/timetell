@@ -376,11 +376,11 @@ CREATE OR REPLACE VIEW "{schemaname}"."viw_timetell_ivdi" AS
     hrs.hours_per_werkdag AS contract_uren_per_werkdag,
     hrs.fte_per_werkdag AS norm_uren,
     CURRENT_TIMESTAMP AS datum_tijd_verversen_extract
-   FROM viw_tableau_hrs_union_all_normuren hrs
-     LEFT JOIN vw_tableau_act act ON hrs.act_id = act.act_id
-     LEFT JOIN vw_tableau_cust cust ON hrs.cust_id = cust.cust_id
-     LEFT JOIN viw_tableau_emp emp ON hrs.emp_id = emp.emp_id
-     LEFT JOIN vw_tableau_org org ON hrs.org_id = org.org_id
-     LEFT JOIN vw_tableau_prj prj ON hrs.prj_id = prj.prj_id
-     LEFT JOIN vw_tableau_sys_prj_niv prj_niv ON hrs.prj_id = prj_niv.prj_id
-     LEFT JOIN vw_tableau_prj parent ON prj.parent_id = parent.prj_id;
+   FROM "{schemaname}"."viw_tableau_hrs_union_all_normuren" hrs
+     LEFT JOIN "{schemaname}".vw_tableau_act act ON hrs.act_id = act.act_id
+     LEFT JOIN "{schemaname}".vw_tableau_cust cust ON hrs.cust_id = cust.cust_id
+     LEFT JOIN "{schemaname}".viw_tableau_emp emp ON hrs.emp_id = emp.emp_id
+     LEFT JOIN "{schemaname}".vw_tableau_org org ON hrs.org_id = org.org_id
+     LEFT JOIN "{schemaname}".vw_tableau_prj prj ON hrs.prj_id = prj.prj_id
+     LEFT JOIN "{schemaname}".vw_tableau_sys_prj_niv prj_niv ON hrs.prj_id = prj_niv.prj_id
+     LEFT JOIN "{schemaname}".vw_tableau_prj parent ON prj.parent_id = parent.prj_id;
