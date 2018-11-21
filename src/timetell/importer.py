@@ -549,7 +549,7 @@ _CUSTOMER_SETTINGS = dict(
     datapunt=dict(
         tables=_TABLESETTINGS.keys(),
         sql=pkg_resources.resource_string(
-            __name__, 'datapunt.sql','dienstverlening.sql'
+            __name__, 'datapunt.sql'
         ).decode('utf-8')
     ),
     dienstverlening=dict(
