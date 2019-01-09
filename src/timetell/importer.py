@@ -762,7 +762,7 @@ async def set_constraints(tablename: str):
 
 
 async def publish():
-    q = 'DROP SCHEMA "public" CASCADE; ' \
+    q = 'DROP SCHEMA IF EXISTS "public" CASCADE; ' \
         'ALTER SCHEMA "{}" RENAME TO "public";'.format(_importschema)
     await _pool.execute(q)
     _logger.debug("Published imported data in the public schema (existing tables are removed)")
