@@ -299,7 +299,7 @@ CREATE OR REPLACE VIEW "{schemaname}"."viw_tableau_hrs_union_all_normuren" AS
     NULL::integer AS aantal_werkdagen_in_jaar,
     NULL::double precision AS hours_per_werkdag,
     NULL::double precision AS fte_per_werkdag
-   FROM vw_tableau_hrs
+   FROM "{schemaname}".vw_tableau_hrs
   WHERE vw_tableau_hrs.uren <> 0::double precision
 UNION ALL
  SELECT 'emp_contract'::text AS bron,
@@ -316,9 +316,9 @@ UNION ALL
     a.hours_per_werkdag,
     a.fte_per_werkdag
    FROM "{schemaname}"."viw_tableau_normuren_per_werkdag" a,
-    ( SELECT vw_tableau_hrs.emp_id,
+    ( SELECT "{schemaname}".vw_tableau_hrs.emp_id,
             min(vw_tableau_hrs.org_id) AS org_id
-           FROM vw_tableau_hrs
+           FROM "{schemaname}".vw_tableau_hrs
           GROUP BY vw_tableau_hrs.emp_id) b
   WHERE a.emp_id = b.emp_id;
 
