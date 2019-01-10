@@ -7,7 +7,7 @@
 !setup.py
 !setup.cfg
 !MANIFEST.in
-!README
+!README.MD
 !LICENSE.rst
 !Makefile
 !**/*.yml

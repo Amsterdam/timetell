@@ -252,7 +252,7 @@ CREATE OR REPLACE VIEW "{schemaname}"."viw_tableau_emp" AS
     "EMP".middlename AS mdw_tussenvoegsels,
     "EMP".firstname AS mdw_voornaam,
     "EMP".empcat AS mdw_categorie
-   FROM "EMP";
+   FROM "{schemaname}"."EMP";
 
 ----------------------------------------------------------
 -- View: "{schemaname}".viw_tableau_normuren_per_werkdag
@@ -275,7 +275,7 @@ CREATE OR REPLACE VIEW "{schemaname}"."viw_tableau_normuren_per_werkdag" AS
     cte.aantal_werkdagen_in_jaar,
     a.fte / cte.aantal_werkdagen_in_jaar::double precision AS fte_per_werkdag,
     a.hours / cte.aantal_werkdagen_in_jaar::double precision AS hours_per_werkdag
-   FROM "EMP_CONTRACT" a
+   FROM "{schemaname}"."EMP_CONTRACT" a
      JOIN "{schemaname}".viw_tableau_datum b ON b.datum >= a.fromdate AND b.datum <= a.todate
      JOIN cte ON date_part('year'::text, b.datum) = cte.jaar
   WHERE b.dow_datum >= b.dow_ma AND b.dow_datum <= (b.dow_ma + 4::double precision);
@@ -299,7 +299,7 @@ CREATE OR REPLACE VIEW "{schemaname}"."viw_tableau_hrs_union_all_normuren" AS
     NULL::integer AS aantal_werkdagen_in_jaar,
     NULL::double precision AS hours_per_werkdag,
     NULL::double precision AS fte_per_werkdag
-   FROM vw_tableau_hrs
+   FROM "{schemaname}".vw_tableau_hrs
   WHERE vw_tableau_hrs.uren <> 0::double precision
 UNION ALL
  SELECT 'emp_contract'::text AS bron,
@@ -316,9 +316,9 @@ UNION ALL
     a.hours_per_werkdag,
     a.fte_per_werkdag
    FROM "{schemaname}"."viw_tableau_normuren_per_werkdag" a,
-    ( SELECT vw_tableau_hrs.emp_id,
+    ( SELECT "{schemaname}".vw_tableau_hrs.emp_id,
             min(vw_tableau_hrs.org_id) AS org_id
-           FROM vw_tableau_hrs
+           FROM "{schemaname}".vw_tableau_hrs
           GROUP BY vw_tableau_hrs.emp_id) b
   WHERE a.emp_id = b.emp_id;
 
