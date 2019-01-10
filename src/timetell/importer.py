@@ -550,7 +550,9 @@ _CUSTOMER_SETTINGS = dict(
         tables=_TABLESETTINGS.keys(),
         sql=pkg_resources.resource_string(
             __name__, 'datapunt.sql'
-        ).decode('utf-8')
+        ).decode('utf-8'),
+        tables_to_check=[ "v_timetell_projectenoverzicht", "v_timetell_projectenoverzicht_V2",
+                          "v_timetell_projectenoverzicht_3", ]
     ),
     dienstverlening=dict(
         tables=(
@@ -559,7 +561,11 @@ _CUSTOMER_SETTINGS = dict(
         ),
         sql=pkg_resources.resource_string(
             __name__, 'dienstverlening.sql'
-        ).decode('utf-8')
+        ).decode('utf-8'),
+        tables_to_check=["viw_tableau_datum", "viw_tableau_emp", "viw_tableau_hrs_union_all_normuren",
+                         "viw_tableau_normuren_per_werkdag", "viw_timetell_ivdi", "vw_tableau_act", "vw_tableau_cust",
+                         "vw_tableau_emp", "vw_tableau_hrs", "vw_tableau_hulp_week", "vw_tableau_org",
+                         "vw_tableau_prj", "vw_tableau_sys_prj_niv", "vw_timetell_ivdi", ]
     )
 )
 
@@ -768,6 +774,14 @@ async def publish():
     _logger.debug("Published imported data in the public schema (existing tables are removed)")
 
 
+async def assert_has_data(table_name):
+    q = 'SELECT COUNT (*) FROM "%s";' % (table_name, )
+    count_result = await _pool.fetch(q)
+    count = count_result[0]['count']
+    if count < 0:
+        raise(Exception("Empty view for %s" % (table_name,)))
+
+
 async def run_sql(sql: str):
     """ Run arbitrary sql. {schemaname} placeholders will be replaced by the
     temporary schemaname.
@@ -820,18 +834,25 @@ def cli():
     try:
         # run import
         coros = []
-        for tablename in customer['tables']:
-            coros.append(populate(tablename, csv_generator(tablename)))
+        for table_name in customer['tables']:
+            coros.append(populate(table_name, csv_generator(table_name)))
         eventloop.run_until_complete(asyncio.gather(*coros))
         # create constraints
-        for tablename in customer['tables']:
+        for table_name in customer['tables']:
             # we need to do this one-by-one: may result in deadlocks otherwise
-            eventloop.run_until_complete(set_constraints(tablename))
+            eventloop.run_until_complete(set_constraints(table_name))
         # after all is done we run extra sql
         if 'sql' in customer:
             eventloop.run_until_complete(run_sql(customer['sql']))
         # publish data
         eventloop.run_until_complete(publish())
+
+        # make sure that the views have data, otherwise raise
+        coros = []
+        for table_name in customer['tables_to_check']:
+            coros.append(assert_has_data(table_name))
+        eventloop.run_until_complete(asyncio.gather(*coros))
+
     finally:
         eventloop.run_until_complete(close())
 
