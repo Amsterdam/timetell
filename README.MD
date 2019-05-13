@@ -3,6 +3,7 @@ Timetell data importer
 
 This project downloads Timetell csv-data from an ftp objectstore and imports it into a Postgres database.
 
+See doc/ for more documentation.
 
 
 Install
