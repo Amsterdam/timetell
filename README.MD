@@ -1,7 +1,7 @@
 Timetell data importer
 ===
 
-This project imports Timetell data it receives through POST requests into a Postgress database.
+This project downloads Timetell csv-data from an ftp objectstore and imports it into a Postgres database.
 
 
 
@@ -14,13 +14,13 @@ Install
 
 Development
 ===========
-* Create a local database
+* Create a local database, or run the database inside the docker container
 * import data:
-    > `ttldl -v -o --user <timetell:obj_store_password> <obj_store_project> uploads <destination_folder>`
+    > `ttldl -v -o --user <timetell:obj_store_password> <obj_store_project_id> uploads <local_csv_download_dir>`
 * import:
-    > `ttli -v -d <csv_download_dir> postgresql://<db_user>:<db_password>@localhost/<db_name> datapunt`
+    > `ttli -v -d <local_csv_download_dir> postgresql://<db_user>:<db_password>@localhost/<db_name> datapunt`
 * import:
-    > `ttli -v -d <csv_download_dir> postgresql://<db_user>:<db_password>@localhost/<db_name> dienstverlening`
+    > `ttli -v -d <local_csv_download_dir> postgresql://<db_user>:<db_password>@localhost/<db_name> dienstverlening`
 
 
 Testing
