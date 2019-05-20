@@ -563,7 +563,6 @@ CREATE TABLE IF NOT EXISTS "{schemaname}"."{tablename}" (
     options integer,
     caption character varying(50),
     recurrenceindex integer,
-    recurrenceinfo character varying(50),
     emp_id integer,
     location character varying(20),
     message character varying(50),
