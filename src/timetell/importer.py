@@ -529,10 +529,10 @@ CREATE TABLE IF NOT EXISTS "{schemaname}"."{tablename}" (
     calcid integer
 );
         """,
-        'constraints': """
-ALTER TABLE "{schemaname}"."{tablename}"
-    ADD CONSTRAINT fk_opt_id FOREIGN KEY (opt_id) REFERENCES "{schemaname}"."SYS_OPT"(opt_id);
-        """
+        # 'constraints': """
+# ALTER TABLE "{schemaname}"."{tablename}"
+#     ADD CONSTRAINT fk_opt_id FOREIGN KEY (opt_id) REFERENCES "{schemaname}"."SYS_OPT"(opt_id);
+#         """
     },
     VW_LABEL_PRJ={
         'create': """
@@ -896,7 +896,13 @@ ALTER TABLE "{schemaname}"."{tablename}"
 
 _CUSTOMER_SETTINGS = dict(
     datapunt=dict(
-        tables=_TABLESETTINGS.keys(),
+        tables=
+        (
+           'ACT', 'EMP', 'ORG',  'JOB', 'CUST', 'CUST_CONTACT', 'EMP_CONTRACT', 'EMP_ORG', 'PRJ', 'PRJ_LINK',
+           'SYS_PRJ_NIV', 'HRS',
+           # 'SYS_OPT',
+           'SYS_OPT_ITM', 'VW_LABEL_PRJ'
+        ),
         sql=pkg_resources.resource_string(
             __name__, 'datapunt.sql'
         ).decode('utf-8'),
