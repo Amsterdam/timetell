@@ -280,11 +280,7 @@ CREATE TABLE IF NOT EXISTS "{schemaname}"."{tablename}" (
     tagtype integer,
     tagdate date
 );
-""",
-        'constraints': """
-ALTER TABLE "{schemaname}"."{tablename}"
-    ADD CONSTRAINT fk_cust_id FOREIGN KEY (cust_id) REFERENCES "{schemaname}"."CUST"(cust_id);
-        """
+"""
     },
     EMP_CONTRACT={
         'create': """
@@ -514,6 +510,14 @@ ALTER TABLE "{schemaname}"."{tablename}"
     ADD CONSTRAINT fk_org_id FOREIGN KEY (org_id) REFERENCES "{schemaname}"."ORG"(org_id);
         """
     },
+    SYS_OPT={
+        'create': """
+CREATE TABLE IF NOT EXISTS "{schemaname}"."{tablename}" (
+    opt_id integer PRIMARY KEY,
+    name character varying(50)
+);
+        """
+    },
     SYS_OPT_ITM={
         'create': """
 CREATE TABLE IF NOT EXISTS "{schemaname}"."{tablename}" (
@@ -524,6 +528,10 @@ CREATE TABLE IF NOT EXISTS "{schemaname}"."{tablename}" (
     updatelocal timestamp,
     calcid integer
 );
+        """,
+        'constraints': """
+ALTER TABLE "{schemaname}"."{tablename}"
+    ADD CONSTRAINT fk_opt_id FOREIGN KEY (opt_id) REFERENCES "{schemaname}"."SYS_OPT"(opt_id);
         """
     },
     VW_LABEL_PRJ={
@@ -534,7 +542,7 @@ CREATE TABLE IF NOT EXISTS "{schemaname}"."{tablename}" (
     "type" integer,
     item_id integer,
     "value" numeric,
-    "date" time without time zone,
+    "date" date,
     "desc" character varying(50) collate pg_catalog."default",
     tag integer,
     tagtype integer,
@@ -543,6 +551,347 @@ CREATE TABLE IF NOT EXISTS "{schemaname}"."{tablename}" (
 );
         """
     },
+    CALENDAR={
+        'create': """
+CREATE TABLE IF NOT EXISTS "{schemaname}"."{tablename}" (
+    calendar_id integer PRIMARY KEY,
+    plan_week_id integer,
+    parentid integer,
+    "type" integer,
+    start date,
+    finish date,
+    options integer,
+    caption character varying(50),
+    recurrenceindex integer,
+    recurrenceinfo character varying(50),
+    emp_id integer,
+    location character varying(20),
+    message character varying(50),
+    reminderdate date,
+    reminderminutes integer,
+    state integer,
+    labelcolor integer,
+    actualstart date,
+    actualfinish date,
+    syncidfield character varying(20),
+    act_id integer,
+    prj_id integer,
+    cust_id integer,
+    org_id integer,
+    hours double precision,
+    remaining double precision,
+    emp_book_id integer,
+    status integer,
+    percent double precision,
+    sharedid integer,
+    owner_id integer,
+    changedate date,
+    syncdate date,
+    private integer,
+    method integer,
+    planshift_id integer,
+    tag integer,
+    tagtype integer,
+    tagdate date,
+    plan_alloc_id integer,
+    dayplan integer,
+    tentative integer,
+    meeting integer,
+    reminderchangedate integer,
+    changed_by integer,
+    rate double precision,
+    internalrate double precision
+);
+        """,
+        'constraints': """
+ALTER TABLE "{schemaname}"."{tablename}"
+    ADD CONSTRAINT fk_emp_id FOREIGN KEY (emp_id) REFERENCES "{schemaname}"."EMP"(emp_id);
+        """
+    },
+    PLAN_WEEK={
+        'create': """
+CREATE TABLE IF NOT EXISTS "{schemaname}"."{tablename}" (
+    plan_week_id integer PRIMARY KEY,
+    plan_alloc_id integer,
+    emp_id integer,
+    act_id integer,
+    prj_id integer,
+    cust_id integer,
+    org_id integer,
+    "desc" character varying(50) collate pg_catalog."default",
+    info text,
+    fromdate date,
+    todate date,
+    hours double precision,
+    owner_id integer,
+    changedate date,
+    tag integer,
+    tagtype integer,
+    tagdate date,
+    tentative integer,
+    rate double precision,
+    internalrate double precision
+);
+        """,
+        'constraints': """
+ALTER TABLE "{schemaname}"."{tablename}"
+    ADD CONSTRAINT fk_plan_alloc_id FOREIGN KEY (plan_alloc_id) REFERENCES "{schemaname}"."PLAN_ALLOC"(plan_alloc_id),
+    ADD CONSTRAINT fk_emp_id FOREIGN KEY (emp_id) REFERENCES "{schemaname}"."EMP"(emp_id);
+    -- ADD CONSTRAINT fk_act_id FOREIGN KEY (act_id) REFERENCES "{schemaname}"."ACT"(act_id),
+    -- ADD CONSTRAINT fk_prj_id FOREIGN KEY (prj_id) REFERENCES "{schemaname}"."PRJ"(prj_id),
+    -- ADD CONSTRAINT fk_cust_id FOREIGN KEY (cust_id) REFERENCES "{schemaname}"."CUST"(cust_id),
+    -- ADD CONSTRAINT fk_org_id FOREIGN KEY (org_id) REFERENCES "{schemaname}"."ORG"(org_id);
+        """
+    },
+    PLAN_TASK={
+        'create': """
+CREATE TABLE IF NOT EXISTS "{schemaname}"."{tablename}" (
+    plan_task_id integer PRIMARY KEY,
+    act_id integer,
+    prj_id integer,
+    cust_id integer,
+    org_id integer,
+    fromdate date,
+    todate date,
+    "desc" character varying(50) collate pg_catalog."default",
+    info text,
+    label character varying(20),
+    plan_prj_id integer,
+    plantype integer,
+    nr integer,
+    type integer,
+    start date,
+    finish date,
+    duration integer,
+    options integer,
+    taskindex integer,
+    tasklinks character varying(50),
+    base_idx integer,
+    base_origin_id integer,
+    base_desc character varying(50) collate pg_catalog."default",
+    base_savedate date,
+    hours double precision,
+    costs integer,
+    completed integer,
+    owner_id integer,
+    changedate date,
+    tag integer,
+    tagtype integer,
+    tagdate date,
+    group_id integer,
+    editrequest integer,
+    fixedperiod integer,
+    status_date date,
+    changed_by integer,
+    pl_color integer,
+    calcduration integer,
+    category integer,
+    status_alloc integer,
+    status_allocinfo character varying(50),
+    can_allocate integer,
+    task_complete integer,
+    status integer
+)
+        """,
+        'constraints': """
+ALTER TABLE "{schemaname}"."{tablename}"
+    -- ADD CONSTRAINT fk_act_id FOREIGN KEY (act_id) REFERENCES "{schemaname}"."ACT"(act_id),
+    -- ADD CONSTRAINT fk_prj_id FOREIGN KEY (prj_id) REFERENCES "{schemaname}"."PRJ"(prj_id),
+    -- ADD CONSTRAINT fk_cust_id FOREIGN KEY (cust_id) REFERENCES "{schemaname}"."CUST"(cust_id),
+    ADD CONSTRAINT fk_org_id FOREIGN KEY (org_id) REFERENCES "{schemaname}"."ORG"(org_id),
+    ADD CONSTRAINT fk_plan_prj_id FOREIGN KEY (plan_prj_id) REFERENCES "{schemaname}"."PLAN_PRJ"(plan_prj_id);
+        """
+    },
+    PLAN_ALLOC={
+        'create': """
+CREATE TABLE IF NOT EXISTS "{schemaname}"."{tablename}" (
+    plan_alloc_id integer PRIMARY KEY,
+    plan_request_id integer,
+    "desc" character varying(50) collate pg_catalog."default",
+    info text,
+    fromdate date,
+    todate date,
+    act_id integer,
+    prj_id integer,
+    cust_id integer,
+    emp_id integer,
+    hours double precision,
+    status integer,
+    completed integer,
+    extra_hours double precision,
+    owner_id integer,
+    changedate date,
+    tag integer,
+    tagtype integer,
+    tagdate date,
+    plan_task_id integer,
+    skill_id integer,
+    status_date date,
+    changed_by integer,
+    autoupdate integer,
+    rate double precision,
+    internalrate double precision,
+    complete integer
+);
+        """,
+        'constraints': """
+ALTER TABLE "{schemaname}"."{tablename}"
+    ADD CONSTRAINT fk_emp_id FOREIGN KEY (emp_id) REFERENCES "{schemaname}"."EMP"(emp_id),
+    ADD CONSTRAINT fk_act_id FOREIGN KEY (act_id) REFERENCES "{schemaname}"."ACT"(act_id),
+    ADD CONSTRAINT fk_prj_id FOREIGN KEY (prj_id) REFERENCES "{schemaname}"."PRJ"(prj_id),
+    -- ADD CONSTRAINT fk_cust_id FOREIGN KEY (cust_id) REFERENCES "{schemaname}"."CUST"(cust_id),
+    ADD CONSTRAINT fk_plan_request_id FOREIGN KEY (plan_request_id) REFERENCES "{schemaname}"."PLAN_REQUEST"(plan_request_id),
+    ADD CONSTRAINT fk_plan_task_id FOREIGN KEY (plan_task_id) REFERENCES "{schemaname}"."PLAN_TASK"(plan_task_id);
+        """
+    },
+    PLAN_REQUEST={
+        'create': """
+CREATE TABLE IF NOT EXISTS "{schemaname}"."{tablename}" (
+    plan_request_id integer PRIMARY KEY,
+    emp_id integer,
+    org_id integer,
+    skill_id integer,
+    fromdate date,
+    todate date,
+    "desc" character varying(50) collate pg_catalog."default",
+    info text,
+    hours double precision,
+    status integer,
+    owner_id integer,
+    changedate date,
+    status_alloc integer,
+    tag integer,
+    tagtype integer,
+    tagdate date,
+    plan_task_id integer,
+    changed_by integer,
+    status_date date,
+    days integer,
+    weekhours double precision,
+    status_allocinfo character varying(50),
+    rate double precision,
+    internalrate double precision
+)
+        """,
+        'constraints': """
+ALTER TABLE "{schemaname}"."{tablename}"
+    ADD CONSTRAINT fk_emp_id FOREIGN KEY (emp_id) REFERENCES "{schemaname}"."EMP"(emp_id),
+    ADD CONSTRAINT fk_org_id FOREIGN KEY (org_id) REFERENCES "{schemaname}"."ORG"(org_id),
+    ADD CONSTRAINT fk_plan_task_id FOREIGN KEY (plan_task_id) REFERENCES "{schemaname}"."PLAN_TASK"(plan_task_id);
+        """
+    },
+    PLAN_PRJ={
+        'create': """
+    CREATE TABLE IF NOT EXISTS "{schemaname}"."{tablename}" (
+        plan_prj_id integer PRIMARY KEY,
+        prj_id integer,
+        fromdate date,
+        todate date,
+        calcduration integer,
+        version integer,
+        tag integer,
+        tagtype integer,
+        tagdate date
+    )
+        """,
+        },
+    EMP_SKILLS={
+        'create':   """
+CREATE TABLE IF NOT EXISTS "{schemaname}"."{tablename}" (
+    emp_skills_id integer PRIMARY KEY,
+    emp_id integer,
+    skill_id integer,
+    "order" integer,
+    "desc" character varying(50) collate pg_catalog."default",
+    perc double precision,
+    tag integer,
+    tagtype integer,
+    tagdate date
+)
+        """,
+        'constraints': """
+ALTER TABLE "{schemaname}"."{tablename}"
+    ADD CONSTRAINT fk_emp_id FOREIGN KEY (emp_id) REFERENCES "{schemaname}"."EMP"(emp_id);
+            """
+        },
+    PLAN_CELLS={
+        'create': """
+CREATE TABLE IF NOT EXISTS "{schemaname}"."{tablename}" (
+    plan_cells_id integer,
+    plan_id integer,
+    emp_id integer,
+    act_id integer,
+    prj_id integer,
+    org_id integer,
+    cust_id integer,
+    fromdate timestamp,
+    todate timestamp,
+    type integer,
+    dim_id integer,
+    status integer,
+    hours float,
+    costs float,
+    items float,
+    completed integer,
+    remaining float,
+    info text,
+    perc float,
+    exportdate timestamp,
+    exportvlag integer,
+    tag integer,
+    tagtype integer,
+    tagdate timestamp
+)
+        """,
+        'constrains': """
+ALTER TABLE "{schemaname}"."{tablename}"
+    ADD CONSTRAINT fk_plan_cells_id FOREIGN KEY (plan_cells_id) REFERENCES "{schemaname}"."PLAN_CELLS"(plan_cells_id),
+    ADD CONSTRAINT fk_emp_id FOREIGN KEY (emp_id) REFERENCES "{schemaname}"."EMP"(emp_id),
+    ADD CONSTRAINT fk_act_id FOREIGN KEY (act_id) REFERENCES "{schemaname}"."ACT"(act_id),
+    ADD CONSTRAINT fk_prj_id FOREIGN KEY (prj_id) REFERENCES "{schemaname}"."PRJ"(prj_id),
+    ADD CONSTRAINT fk_org_id FOREIGN KEY (org_id) REFERENCES "{schemaname}"."ORG"(org_id);
+        """
+    },
+    PLAN_TASK_COST={
+        'create': """
+CREATE TABLE IF NOT EXISTS "{schemaname}"."{tablename}" (
+    PLAN_TASK_COST_ID integer,
+    PLAN_TASK_ID integer,
+    ACCOUNT character varying(20),
+    "DESC" character varying(50),
+    PLAN_COST float,
+    COST float,
+    DATE timestamp,
+    STATUS integer,
+    TAG integer,
+    TAGTYPE integer,
+    TAGDATE timestamp
+)
+        """,
+        'constraints': """
+ALTER TABLE "{schemaname}"."{tablename}"
+    ADD CONSTRAINT fk_plan_task_id FOREIGN KEY (plan_task_id) REFERENCES "{schemaname}"."PLAN_TASK"(plan_task_id);
+        """
+    },
+    PLAN_TASK_LIST={
+        'create': """
+CREATE TABLE IF NOT EXISTS "{schemaname}"."{tablename}" (
+    PLAN_TASK_LIST_ID integer,
+    PLAN_TASK_ID integer,
+    "DESC" character varying(50),
+    INFO text,
+    COMPLETED integer,
+    COMPLETED_DATE timestamp,
+    TAG integer,
+    TAGTYPE integer,
+    TAGDATE timestamp
+)
+        """,
+        'constraints': """
+ALTER TABLE "{schemaname}"."{tablename}"
+    ADD CONSTRAINT fk_plan_task_id FOREIGN KEY (plan_task_id) REFERENCES "{schemaname}"."PLAN_TASK"(plan_task_id);
+        """
+    }
 )
 
 _CUSTOMER_SETTINGS = dict(
@@ -551,13 +900,14 @@ _CUSTOMER_SETTINGS = dict(
         sql=pkg_resources.resource_string(
             __name__, 'datapunt.sql'
         ).decode('utf-8'),
-        tables_to_check=[ "v_timetell_projectenoverzicht", "v_timetell_projectenoverzicht_V2",
-                          "v_timetell_projectenoverzicht_3", ]
+        tables_to_check=["v_timetell_projectenoverzicht", "v_timetell_projectenoverzicht_3",
+                         "v_timetell_projectenoverzicht_4"]
     ),
     dienstverlening=dict(
         tables=(
             'ACT', 'EMP', 'ORG', 'CUST', 'EMP_CONTRACT', 'EMP_ORG', 'PRJ',
-            'PRJ_LINK', 'SYS_PRJ_NIV', 'HRS'
+            'PRJ_LINK', 'SYS_PRJ_NIV', 'HRS', 'SYS_OPT', 'SYS_OPT_ITM', 'CALENDAR',
+            'PLAN_WEEK', 'PLAN_ALLOC', 'PLAN_REQUEST', 'PLAN_TASK', 'PLAN_PRJ'
         ),
         sql=pkg_resources.resource_string(
             __name__, 'dienstverlening.sql'
@@ -724,7 +1074,11 @@ async def populate(tablename: str, reader: T.AsyncGenerator) -> int:
 
     # get the column names from the reader
     # here we strip the TT_ prefix and lowercase everything
-    headers = tuple(map(lambda c: c.lower()[3:], await reader.__anext__()))
+    try:
+        headers = tuple(map(lambda c: c.lower()[3:], await reader.__anext__()))
+    except FileNotFoundError:
+        _logger.warning("File for table '{}' does not exist".format(tablename))
+        return -1
 
     # get the field converters for this table
     convs = await _fieldconverters(tablename, headers)
