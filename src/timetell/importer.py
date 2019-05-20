@@ -280,11 +280,7 @@ CREATE TABLE IF NOT EXISTS "{schemaname}"."{tablename}" (
     tagtype integer,
     tagdate date
 );
-""",
-        'constraints': """
-ALTER TABLE "{schemaname}"."{tablename}"
-    ADD CONSTRAINT fk_cust_id FOREIGN KEY (cust_id) REFERENCES "{schemaname}"."CUST"(cust_id);
-        """
+"""
     },
     EMP_CONTRACT={
         'create': """
@@ -798,13 +794,9 @@ ALTER TABLE "{schemaname}"."{tablename}"
         tagdate date
     )
         """,
-    #         'constraints': """
-    # ALTER TABLE "{schemaname}"."{tablename}"
-    #     ADD CONSTRAINT fk_prj_id FOREIGN KEY (prj_id) REFERENCES "{schemaname}"."PRJ"(prj_id);
-    #         """
         },
     EMP_SKILLS={
-        'create': """
+        'create':   """
 CREATE TABLE IF NOT EXISTS "{schemaname}"."{tablename}" (
     emp_skills_id integer PRIMARY KEY,
     emp_id integer,
@@ -822,6 +814,84 @@ ALTER TABLE "{schemaname}"."{tablename}"
     ADD CONSTRAINT fk_emp_id FOREIGN KEY (emp_id) REFERENCES "{schemaname}"."EMP"(emp_id);
             """
         },
+    PLAN_CELLS={
+        'create': """
+CREATE TABLE IF NOT EXISTS "{schemaname}"."{tablename}" (
+    plan_cells_id integer,
+    plan_id integer,
+    emp_id integer,
+    act_id integer,
+    prj_id integer,
+    org_id integer,
+    cust_id integer,
+    fromdate timestamp,
+    todate timestamp,
+    type integer,
+    dim_id integer,
+    status integer,
+    hours float,
+    costs float,
+    items float,
+    completed integer,
+    remaining float,
+    info text,
+    perc float,
+    exportdate timestamp,
+    exportvlag integer,
+    tag integer,
+    tagtype integer,
+    tagdate timestamp
+)
+        """,
+        'constrains': """
+ALTER TABLE "{schemaname}"."{tablename}"
+    ADD CONSTRAINT fk_plan_cells_id FOREIGN KEY (plan_cells_id) REFERENCES "{schemaname}"."PLAN_CELLS"(plan_cells_id),
+    ADD CONSTRAINT fk_emp_id FOREIGN KEY (emp_id) REFERENCES "{schemaname}"."EMP"(emp_id),
+    ADD CONSTRAINT fk_act_id FOREIGN KEY (act_id) REFERENCES "{schemaname}"."ACT"(act_id),
+    ADD CONSTRAINT fk_prj_id FOREIGN KEY (prj_id) REFERENCES "{schemaname}"."PRJ"(prj_id),
+    ADD CONSTRAINT fk_org_id FOREIGN KEY (org_id) REFERENCES "{schemaname}"."ORG"(org_id);
+        """
+    },
+    PLAN_TASK_COST={
+        'create': """
+CREATE TABLE IF NOT EXISTS "{schemaname}"."{tablename}" (
+    PLAN_TASK_COST_ID integer,
+    PLAN_TASK_ID integer,
+    ACCOUNT character varying(20),
+    "DESC" character varying(50),
+    PLAN_COST float,
+    COST float,
+    DATE timestamp,
+    STATUS integer,
+    TAG integer,
+    TAGTYPE integer,
+    TAGDATE timestamp
+)
+        """,
+        'constraints': """
+ALTER TABLE "{schemaname}"."{tablename}"
+    ADD CONSTRAINT fk_plan_task_id FOREIGN KEY (plan_task_id) REFERENCES "{schemaname}"."PLAN_TASK"(plan_task_id);
+        """
+    },
+    PLAN_TASK_LIST={
+        'create': """
+CREATE TABLE IF NOT EXISTS "{schemaname}"."{tablename}" (
+    PLAN_TASK_LIST_ID integer,
+    PLAN_TASK_ID integer,
+    "DESC" character varying(50),
+    INFO text,
+    COMPLETED integer,
+    COMPLETED_DATE timestamp,
+    TAG integer,
+    TAGTYPE integer,
+    TAGDATE timestamp
+)
+        """,
+        'constraints': """
+ALTER TABLE "{schemaname}"."{tablename}"
+    ADD CONSTRAINT fk_plan_task_id FOREIGN KEY (plan_task_id) REFERENCES "{schemaname}"."PLAN_TASK"(plan_task_id);
+        """
+    }
 )
 
 _CUSTOMER_SETTINGS = dict(
@@ -1004,7 +1074,11 @@ async def populate(tablename: str, reader: T.AsyncGenerator) -> int:
 
     # get the column names from the reader
     # here we strip the TT_ prefix and lowercase everything
-    headers = tuple(map(lambda c: c.lower()[3:], await reader.__anext__()))
+    try:
+        headers = tuple(map(lambda c: c.lower()[3:], await reader.__anext__()))
+    except FileNotFoundError:
+        _logger.warning("File for table '{}' does not exist".format(tablename))
+        return -1
 
     # get the field converters for this table
     convs = await _fieldconverters(tablename, headers)
