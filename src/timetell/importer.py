@@ -910,9 +910,9 @@ _CUSTOMER_SETTINGS = dict(
     ),
     dienstverlening=dict(
         tables=(
-            'ACT', 'EMP', 'ORG', 'CUST', 'EMP_CONTRACT', 'EMP_ORG', 'PRJ',
-            'PRJ_LINK', 'SYS_PRJ_NIV', 'HRS', 'SYS_OPT', 'SYS_OPT_ITM', 'CALENDAR',
-            'PLAN_WEEK', 'PLAN_ALLOC', 'PLAN_REQUEST', 'PLAN_TASK', 'PLAN_PRJ'
+            'ACT', 'EMP', 'ORG', 'JOB', 'CUST', 'EMP_CONTRACT', 'EMP_ORG', 'EMP_SKILLS', 'PRJ', 'PRJ_LINK',
+            'SYS_PRJ_NIV', 'HRS', 'SYS_OPT', 'SYS_OPT_ITM', 'CALENDAR', 'PLAN_WEEK', 'PLAN_ALLOC', 'PLAN_REQUEST',
+            'PLAN_TASK', 'PLAN_PRJ'
         ),
         sql=pkg_resources.resource_string(
             __name__, 'dienstverlening.sql'
