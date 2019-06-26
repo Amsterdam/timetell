@@ -960,7 +960,10 @@ _CUSTOMER_SETTINGS = dict(
         tables_to_check=["viw_tableau_datum", "viw_tableau_emp", "viw_tableau_hrs_union_all_normuren",
                          "viw_tableau_normuren_per_werkdag", "viw_timetell_ivdi", "vw_tableau_act", "vw_tableau_cust",
                          "vw_tableau_emp", "vw_tableau_hrs", "vw_tableau_hulp_week", "vw_tableau_org",
-                         "vw_tableau_prj", "vw_tableau_sys_prj_niv", "vw_timetell_ivdi", ]
+                         "vw_tableau_prj", "vw_tableau_sys_prj_niv", "vw_timetell_ivdi",
+                         "viwx_01_emp_skill", "viwx_01_zondagen", "viwx_02_contract_per_week",
+                         "viwx_02_plan_alloc_verdeeld", "viwx_02_plan_request_verdeeld", "viwx_02_plan_task_verdeeld",
+                         "viwx_03_plan_union", "viwx_04_union_all", "viwx_timetell_ivdi"]
     )
 )
 

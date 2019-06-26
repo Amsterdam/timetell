@@ -386,15 +386,15 @@ CREATE OR REPLACE VIEW "{schemaname}"."viw_timetell_ivdi" AS
      LEFT JOIN "{schemaname}".vw_tableau_prj parent ON prj.parent_id = parent.prj_id;
 
 
-CREATE OR REPLACE VIEW public.viwx_01_emp_skill
+CREATE OR REPLACE VIEW "{schemaname}"."viwx_01_emp_skill"
 AS SELECT cte.emp_id,
     min(b.item::text) AS skill
-   FROM "PLAN_REQUEST" cte
-     LEFT JOIN "SYS_OPT_ITM" b ON cte.skill_id = b.item_id
+   FROM "{schemaname}"."PLAN_REQUEST" cte
+     LEFT JOIN "{schemaname}"."SYS_OPT_ITM" b ON cte.skill_id = b.item_id
   GROUP BY cte.emp_id
  HAVING count(DISTINCT cte.skill_id) = 1;
 
-CREATE OR REPLACE VIEW public.viwx_01_zondagen
+CREATE OR REPLACE VIEW "{schemaname}"."viwx_01_zondagen"
 AS WITH cte1 AS (
          SELECT row_number() OVER (ORDER BY columns.column_name) - 1 AS weeknummer
            FROM information_schema.columns
@@ -406,7 +406,7 @@ AS WITH cte1 AS (
    FROM cte2
   WHERE date_part('year'::text, cte2.datum)::integer <= (date_part('year'::text, CURRENT_DATE)::integer + 1);
 
-CREATE OR REPLACE VIEW public.viwx_02_contract_per_week
+CREATE OR REPLACE VIEW "{schemaname}"."viwx_02_contract_per_week"
 AS SELECT 'emp_contract'::text AS bron,
     b.datum,
     a.emp_id,
@@ -414,10 +414,10 @@ AS SELECT 'emp_contract'::text AS bron,
     a.hours,
     a.fromdate,
     a.todate
-   FROM "EMP_CONTRACT" a
-     JOIN viwx_01_zondagen b ON b.datum >= a.fromdate AND b.datum <= a.todate;
+   FROM "{schemaname}"."EMP_CONTRACT" a
+     JOIN "{schemaname}"."viwx_01_zondagen" b ON b.datum >= a.fromdate AND b.datum <= a.todate;
 
-CREATE OR REPLACE VIEW public.viwx_02_plan_alloc_verdeeld
+CREATE OR REPLACE VIEW "{schemaname}"."viwx_02_plan_alloc_verdeeld"
 AS WITH cte1 AS (
          SELECT a.plan_alloc_id,
             b.datum,
@@ -431,8 +431,8 @@ AS WITH cte1 AS (
             a.cust_id,
             a.prj_id,
             a.act_id
-           FROM "PLAN_ALLOC" a,
-            viwx_01_zondagen b
+           FROM "{schemaname}"."PLAN_ALLOC" a,
+            "{schemaname}"."viwx_01_zondagen" b
           WHERE (a.todate - a.fromdate) >= 7 AND a.fromdate <= b.datum AND b.datum <= a.todate AND b.datum >= (CURRENT_DATE - 7)
         ), cte2 AS (
          SELECT cte1.plan_alloc_id,
@@ -458,7 +458,7 @@ AS WITH cte1 AS (
    FROM cte1,
     cte2
   WHERE cte1.plan_alloc_id = cte2.plan_alloc_id AND (EXISTS ( SELECT 1
-           FROM "PLAN_WEEK" x
+           FROM "{schemaname}"."PLAN_WEEK" x
           WHERE x.plan_alloc_id = cte1.plan_alloc_id))
 UNION ALL
  SELECT cte1.datum,
@@ -479,7 +479,7 @@ UNION ALL
    FROM cte1,
     cte2
   WHERE cte1.plan_alloc_id = cte2.plan_alloc_id AND NOT (EXISTS ( SELECT 1
-           FROM "PLAN_WEEK" x
+           FROM "{schemaname}"."PLAN_WEEK" x
           WHERE x.plan_alloc_id = cte1.plan_alloc_id))
 UNION ALL
  SELECT a.todate AS datum,
@@ -497,9 +497,9 @@ UNION ALL
     a.prj_id,
     a.act_id,
     101 AS status_alloc
-   FROM "PLAN_ALLOC" a
+   FROM "{schemaname}"."PLAN_ALLOC" a
   WHERE (a.todate - a.fromdate) < 7 AND a.todate >= (CURRENT_DATE - 7) AND (EXISTS ( SELECT 1
-           FROM "PLAN_WEEK" x
+           FROM "{schemaname}"."PLAN_WEEK" x
           WHERE x.plan_alloc_id = a.plan_alloc_id))
 UNION ALL
  SELECT a.todate AS datum,
@@ -517,12 +517,12 @@ UNION ALL
     a.prj_id,
     a.act_id,
     102 AS status_alloc
-   FROM "PLAN_ALLOC" a
+   FROM "{schemaname}"."PLAN_ALLOC" a
   WHERE (a.todate - a.fromdate) < 7 AND a.todate >= (CURRENT_DATE - 7) AND (EXISTS ( SELECT 1
-           FROM "PLAN_WEEK" x
+           FROM "{schemaname}"."PLAN_WEEK" x
           WHERE x.plan_alloc_id = a.plan_alloc_id));
 
-CREATE OR REPLACE VIEW public.viwx_02_plan_request_verdeeld
+CREATE OR REPLACE VIEW "{schemaname}"."viwx_02_plan_request_verdeeld"
 AS WITH cte1 AS (
          SELECT a.plan_request_id,
             b.datum,
@@ -535,8 +535,8 @@ AS WITH cte1 AS (
             a.plan_task_id,
             a.status,
             a.status_alloc
-           FROM "PLAN_REQUEST" a,
-            viwx_01_zondagen b
+           FROM "{schemaname}"."PLAN_REQUEST" a,
+            "{schemaname}"."viwx_01_zondagen" b
           WHERE (a.todate - a.fromdate) >= 7 AND a.fromdate <= b.datum AND b.datum <= a.todate AND b.datum >= (CURRENT_DATE - 7)
         ), cte2 AS (
          SELECT cte1.plan_request_id,
@@ -574,10 +574,10 @@ UNION ALL
     a.todate,
     a.org_id,
     a.status_alloc
-   FROM "PLAN_REQUEST" a
+   FROM "{schemaname}"."PLAN_REQUEST" a
   WHERE (a.todate - a.fromdate) < 7 AND a.todate >= (CURRENT_DATE - 7);
 
-CREATE OR REPLACE VIEW public.viwx_02_plan_task_verdeeld
+CREATE OR REPLACE VIEW "{schemaname}"."viwx_02_plan_task_verdeeld"
 AS WITH cte1 AS (
          SELECT a.plan_task_id,
             b.datum,
@@ -590,8 +590,8 @@ AS WITH cte1 AS (
             a.prj_id,
             a.status,
             a.can_allocate
-           FROM "PLAN_TASK" a,
-            viwx_01_zondagen b
+           FROM "{schemaname}"."PLAN_TASK" a,
+            "{schemaname}"."viwx_01_zondagen" b
           WHERE (a.todate - a.fromdate) >= 7 AND a.fromdate <= b.datum AND b.datum <= a.todate AND b.datum >= (CURRENT_DATE - 7)
         ), cte2 AS (
          SELECT cte1.plan_task_id,
@@ -629,10 +629,10 @@ UNION ALL
     a.fromdate,
     a.todate,
     a.can_allocate
-   FROM "PLAN_TASK" a
+   FROM "{schemaname}"."PLAN_TASK" a
   WHERE (a.todate - a.fromdate) < 7 AND a.todate >= (CURRENT_DATE - 7);
 
-CREATE OR REPLACE VIEW public.viwx_03_plan_union
+CREATE OR REPLACE VIEW "{schemaname}"."viwx_03_plan_union"
 AS WITH cte AS (
          SELECT 'plan_task'::character varying(20) AS bron,
             viwx_02_plan_task_verdeeld.plan_task_id AS pk_id,
@@ -652,7 +652,7 @@ AS WITH cte AS (
             viwx_02_plan_task_verdeeld.status,
             viwx_02_plan_task_verdeeld.org_id,
             NULL::integer AS status_alloc
-           FROM viwx_02_plan_task_verdeeld
+           FROM "{schemaname}"."viwx_02_plan_task_verdeeld"
         UNION ALL
          SELECT 'plan_request'::character varying(20) AS bron,
             a.plan_request_id,
@@ -672,8 +672,8 @@ AS WITH cte AS (
             a.status,
             a.org_id,
             a.status_alloc
-           FROM viwx_02_plan_request_verdeeld a
-             LEFT JOIN "PLAN_TASK" b_1 ON a.plan_task_id = b_1.plan_task_id
+           FROM "{schemaname}"."viwx_02_plan_request_verdeeld" a
+             LEFT JOIN "{schemaname}"."PLAN_TASK" b_1 ON a.plan_task_id = b_1.plan_task_id
         UNION ALL
          SELECT 'plan_alloc'::character varying(20) AS bron,
             a.plan_alloc_id,
@@ -693,8 +693,8 @@ AS WITH cte AS (
             a.status,
             b_1.org_id,
             a.status_alloc
-           FROM viwx_02_plan_alloc_verdeeld a
-             LEFT JOIN "PLAN_REQUEST" b_1 ON a.plan_request_id = b_1.plan_request_id
+           FROM "{schemaname}"."viwx_02_plan_alloc_verdeeld" a
+             LEFT JOIN "{schemaname}"."PLAN_REQUEST" b_1 ON a.plan_request_id = b_1.plan_request_id
         UNION ALL
          SELECT 'plan_week'::character varying(20) AS bron,
             a.plan_week_id,
@@ -714,9 +714,9 @@ AS WITH cte AS (
             NULL::integer AS status,
             a.org_id,
             NULL::integer AS status_alloc
-           FROM "PLAN_WEEK" a
-             LEFT JOIN "PLAN_ALLOC" b_1 ON a.plan_alloc_id = b_1.plan_alloc_id
-             LEFT JOIN "PLAN_REQUEST" c ON b_1.plan_request_id = c.plan_request_id
+           FROM "{schemaname}"."PLAN_WEEK" a
+             LEFT JOIN "{schemaname}"."PLAN_ALLOC" b_1 ON a.plan_alloc_id = b_1.plan_alloc_id
+             LEFT JOIN "{schemaname}"."PLAN_REQUEST" c ON b_1.plan_request_id = c.plan_request_id
         )
  SELECT cte.bron,
     cte.datum,
@@ -737,9 +737,9 @@ AS WITH cte AS (
     cte.pk_id,
     cte.status_alloc
    FROM cte
-     LEFT JOIN "SYS_OPT_ITM" b ON cte.skill_id = b.item_id;
+     LEFT JOIN "{schemaname}"."SYS_OPT_ITM" b ON cte.skill_id = b.item_id;
 
-CREATE OR REPLACE VIEW public.viwx_04_union_all
+CREATE OR REPLACE VIEW "{schemaname}"."viwx_04_union_all"
 AS SELECT 'hrs'::text AS bron,
     a.act_id,
     a.cust_id,
@@ -760,8 +760,8 @@ AS SELECT 'hrs'::text AS bron,
     NULL::integer AS can_allocate,
     NULL::integer AS status,
     NULL::integer AS status_alloc
-   FROM vw_tableau_hrs a
-     LEFT JOIN viwx_01_emp_skill b ON a.emp_id = b.emp_id
+   FROM "{schemaname}"."vw_tableau_hrs" a
+     LEFT JOIN "{schemaname}"."viwx_01_emp_skill" b ON a.emp_id = b.emp_id
   WHERE a.uren <> 0::double precision
 UNION ALL
  SELECT 'emp_contract'::text AS bron,
@@ -784,12 +784,12 @@ UNION ALL
     NULL::integer AS can_allocate,
     NULL::integer AS status,
     NULL::integer AS status_alloc
-   FROM viwx_02_contract_per_week a
-     JOIN ( SELECT vw_tableau_hrs.emp_id,
-            min(vw_tableau_hrs.org_id) AS org_id
-           FROM vw_tableau_hrs
-          GROUP BY vw_tableau_hrs.emp_id) b ON a.emp_id = b.emp_id
-     LEFT JOIN viwx_01_emp_skill c ON a.emp_id = c.emp_id
+   FROM "{schemaname}"."viwx_02_contract_per_week" a
+     JOIN ( SELECT "{schemaname}"."vw_tableau_hrs".emp_id,
+            min("{schemaname}"."vw_tableau_hrs".org_id) AS org_id
+           FROM "{schemaname}"."vw_tableau_hrs"
+          GROUP BY "{schemaname}"."vw_tableau_hrs".emp_id) b ON a.emp_id = b.emp_id
+     LEFT JOIN "{schemaname}"."viwx_01_emp_skill" c ON a.emp_id = c.emp_id
 UNION ALL
  SELECT a.bron,
     a.act_id,
@@ -814,13 +814,13 @@ UNION ALL
     a.can_allocate,
     a.status,
     a.status_alloc
-   FROM viwx_03_plan_union a
-     LEFT JOIN ( SELECT vw_tableau_hrs.emp_id,
-            min(vw_tableau_hrs.org_id) AS org_id
-           FROM vw_tableau_hrs
-          GROUP BY vw_tableau_hrs.emp_id) b ON a.emp_id = b.emp_id;
+   FROM "{schemaname}"."viwx_03_plan_union" a
+     LEFT JOIN ( SELECT "{schemaname}"."vw_tableau_hrs".emp_id,
+            min("{schemaname}"."vw_tableau_hrs".org_id) AS org_id
+           FROM "{schemaname}"."vw_tableau_hrs"
+          GROUP BY "{schemaname}"."vw_tableau_hrs".emp_id) b ON a.emp_id = b.emp_id;
 
-CREATE OR REPLACE VIEW public.viwx_timetell_ivdi
+CREATE OR REPLACE VIEW "{schemaname}"."viwx_timetell_ivdi"
 AS SELECT hrs.bron,
     hrs.datum,
         CASE
@@ -879,11 +879,11 @@ AS SELECT hrs.bron,
     hrs.can_allocate,
     hrs.status,
     hrs.status_alloc
-   FROM viwx_04_union_all hrs
-     LEFT JOIN vw_tableau_act act ON hrs.act_id = act.act_id
-     LEFT JOIN vw_tableau_cust cust ON hrs.cust_id = cust.cust_id
-     LEFT JOIN viw_tableau_emp emp ON hrs.emp_id = emp.emp_id
-     LEFT JOIN vw_tableau_org org ON hrs.org_id = org.org_id
-     LEFT JOIN vw_tableau_prj prj ON hrs.prj_id = prj.prj_id
-     LEFT JOIN vw_tableau_sys_prj_niv prj_niv ON hrs.prj_id = prj_niv.prj_id
-     LEFT JOIN vw_tableau_prj parent ON prj.parent_id = parent.prj_id;
+   FROM "{schemaname}"."viwx_04_union_all" hrs
+     LEFT JOIN "{schemaname}"."vw_tableau_act" act ON hrs.act_id = act.act_id
+     LEFT JOIN "{schemaname}"."vw_tableau_cust" cust ON hrs.cust_id = cust.cust_id
+     LEFT JOIN "{schemaname}"."viw_tableau_emp" emp ON hrs.emp_id = emp.emp_id
+     LEFT JOIN "{schemaname}"."vw_tableau_org" org ON hrs.org_id = org.org_id
+     LEFT JOIN "{schemaname}"."vw_tableau_prj" prj ON hrs.prj_id = prj.prj_id
+     LEFT JOIN "{schemaname}"."vw_tableau_sys_prj_niv" prj_niv ON hrs.prj_id = prj_niv.prj_id
+     LEFT JOIN "{schemaname}"."vw_tableau_prj" parent ON prj.parent_id = parent.prj_id;
