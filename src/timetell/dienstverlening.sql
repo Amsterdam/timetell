@@ -384,3 +384,506 @@ CREATE OR REPLACE VIEW "{schemaname}"."viw_timetell_ivdi" AS
      LEFT JOIN "{schemaname}".vw_tableau_prj prj ON hrs.prj_id = prj.prj_id
      LEFT JOIN "{schemaname}".vw_tableau_sys_prj_niv prj_niv ON hrs.prj_id = prj_niv.prj_id
      LEFT JOIN "{schemaname}".vw_tableau_prj parent ON prj.parent_id = parent.prj_id;
+
+
+CREATE OR REPLACE VIEW public.viwx_01_emp_skill
+AS SELECT cte.emp_id,
+    min(b.item::text) AS skill
+   FROM "PLAN_REQUEST" cte
+     LEFT JOIN "SYS_OPT_ITM" b ON cte.skill_id = b.item_id
+  GROUP BY cte.emp_id
+ HAVING count(DISTINCT cte.skill_id) = 1;
+
+CREATE OR REPLACE VIEW public.viwx_01_zondagen
+AS WITH cte1 AS (
+         SELECT row_number() OVER (ORDER BY columns.column_name) - 1 AS weeknummer
+           FROM information_schema.columns
+        ), cte2 AS (
+         SELECT ('2018-01-07'::date + ((cte1.weeknummer || ' week'::text)::interval))::date AS datum
+           FROM cte1
+        )
+ SELECT cte2.datum
+   FROM cte2
+  WHERE date_part('year'::text, cte2.datum)::integer <= (date_part('year'::text, CURRENT_DATE)::integer + 1);
+
+CREATE OR REPLACE VIEW public.viwx_02_contract_per_week
+AS SELECT 'emp_contract'::text AS bron,
+    b.datum,
+    a.emp_id,
+    a.fte,
+    a.hours,
+    a.fromdate,
+    a.todate
+   FROM "EMP_CONTRACT" a
+     JOIN viwx_01_zondagen b ON b.datum >= a.fromdate AND b.datum <= a.todate;
+
+CREATE OR REPLACE VIEW public.viwx_02_plan_alloc_verdeeld
+AS WITH cte1 AS (
+         SELECT a.plan_alloc_id,
+            b.datum,
+            a.fromdate,
+            a.todate,
+            a.emp_id,
+            a.hours,
+            a.skill_id,
+            a.plan_request_id,
+            a.status,
+            a.cust_id,
+            a.prj_id,
+            a.act_id
+           FROM "PLAN_ALLOC" a,
+            viwx_01_zondagen b
+          WHERE (a.todate - a.fromdate) >= 7 AND a.fromdate <= b.datum AND b.datum <= a.todate AND b.datum >= (CURRENT_DATE - 7)
+        ), cte2 AS (
+         SELECT cte1.plan_alloc_id,
+            count(*) AS deler
+           FROM cte1
+          GROUP BY cte1.plan_alloc_id
+        )
+ SELECT cte1.datum,
+    cte1.emp_id,
+    cte1.hours,
+    cte1.skill_id,
+    cte1.plan_alloc_id,
+    cte1.status,
+    cte2.deler,
+    cte1.hours / cte2.deler::double precision AS hours_verdeeld,
+    cte1.plan_request_id,
+    cte1.fromdate,
+    cte1.todate,
+    cte1.cust_id,
+    cte1.prj_id,
+    cte1.act_id,
+    101 AS status_alloc
+   FROM cte1,
+    cte2
+  WHERE cte1.plan_alloc_id = cte2.plan_alloc_id AND (EXISTS ( SELECT 1
+           FROM "PLAN_WEEK" x
+          WHERE x.plan_alloc_id = cte1.plan_alloc_id))
+UNION ALL
+ SELECT cte1.datum,
+    cte1.emp_id,
+    cte1.hours,
+    cte1.skill_id,
+    cte1.plan_alloc_id,
+    cte1.status,
+    cte2.deler,
+    cte1.hours / cte2.deler::double precision AS hours_verdeeld,
+    cte1.plan_request_id,
+    cte1.fromdate,
+    cte1.todate,
+    cte1.cust_id,
+    cte1.prj_id,
+    cte1.act_id,
+    102 AS status_alloc
+   FROM cte1,
+    cte2
+  WHERE cte1.plan_alloc_id = cte2.plan_alloc_id AND NOT (EXISTS ( SELECT 1
+           FROM "PLAN_WEEK" x
+          WHERE x.plan_alloc_id = cte1.plan_alloc_id))
+UNION ALL
+ SELECT a.todate AS datum,
+    a.emp_id,
+    a.hours,
+    a.skill_id,
+    a.plan_alloc_id,
+    a.status,
+    1 AS deler,
+    a.hours AS hours_verdeeld,
+    a.plan_request_id,
+    a.fromdate,
+    a.todate,
+    a.cust_id,
+    a.prj_id,
+    a.act_id,
+    101 AS status_alloc
+   FROM "PLAN_ALLOC" a
+  WHERE (a.todate - a.fromdate) < 7 AND a.todate >= (CURRENT_DATE - 7) AND (EXISTS ( SELECT 1
+           FROM "PLAN_WEEK" x
+          WHERE x.plan_alloc_id = a.plan_alloc_id))
+UNION ALL
+ SELECT a.todate AS datum,
+    a.emp_id,
+    a.hours,
+    a.skill_id,
+    a.plan_alloc_id,
+    a.status,
+    1 AS deler,
+    a.hours AS hours_verdeeld,
+    a.plan_request_id,
+    a.fromdate,
+    a.todate,
+    a.cust_id,
+    a.prj_id,
+    a.act_id,
+    102 AS status_alloc
+   FROM "PLAN_ALLOC" a
+  WHERE (a.todate - a.fromdate) < 7 AND a.todate >= (CURRENT_DATE - 7) AND (EXISTS ( SELECT 1
+           FROM "PLAN_WEEK" x
+          WHERE x.plan_alloc_id = a.plan_alloc_id));
+
+CREATE OR REPLACE VIEW public.viwx_02_plan_request_verdeeld
+AS WITH cte1 AS (
+         SELECT a.plan_request_id,
+            b.datum,
+            a.fromdate,
+            a.todate,
+            a.emp_id,
+            a.org_id,
+            a.hours,
+            a.skill_id,
+            a.plan_task_id,
+            a.status,
+            a.status_alloc
+           FROM "PLAN_REQUEST" a,
+            viwx_01_zondagen b
+          WHERE (a.todate - a.fromdate) >= 7 AND a.fromdate <= b.datum AND b.datum <= a.todate AND b.datum >= (CURRENT_DATE - 7)
+        ), cte2 AS (
+         SELECT cte1.plan_request_id,
+            count(*) AS deler
+           FROM cte1
+          GROUP BY cte1.plan_request_id
+        )
+ SELECT cte1.datum,
+    cte1.emp_id,
+    cte1.hours,
+    cte1.skill_id,
+    cte1.plan_task_id,
+    cte1.status,
+    cte2.deler,
+    cte1.hours / cte2.deler::double precision AS hours_verdeeld,
+    cte1.plan_request_id,
+    cte1.fromdate,
+    cte1.todate,
+    cte1.org_id,
+    cte1.status_alloc
+   FROM cte1,
+    cte2
+  WHERE cte1.plan_request_id = cte2.plan_request_id
+UNION ALL
+ SELECT a.todate AS datum,
+    a.emp_id,
+    a.hours,
+    a.skill_id,
+    a.plan_task_id,
+    a.status,
+    1 AS deler,
+    a.hours AS hours_verdeeld,
+    a.plan_request_id,
+    a.fromdate,
+    a.todate,
+    a.org_id,
+    a.status_alloc
+   FROM "PLAN_REQUEST" a
+  WHERE (a.todate - a.fromdate) < 7 AND a.todate >= (CURRENT_DATE - 7);
+
+CREATE OR REPLACE VIEW public.viwx_02_plan_task_verdeeld
+AS WITH cte1 AS (
+         SELECT a.plan_task_id,
+            b.datum,
+            a.fromdate,
+            a.todate,
+            a.cust_id,
+            a.hours,
+            a.org_id,
+            a.act_id,
+            a.prj_id,
+            a.status,
+            a.can_allocate
+           FROM "PLAN_TASK" a,
+            viwx_01_zondagen b
+          WHERE (a.todate - a.fromdate) >= 7 AND a.fromdate <= b.datum AND b.datum <= a.todate AND b.datum >= (CURRENT_DATE - 7)
+        ), cte2 AS (
+         SELECT cte1.plan_task_id,
+            count(*) AS deler
+           FROM cte1
+          GROUP BY cte1.plan_task_id
+        )
+ SELECT a.datum,
+    a.cust_id,
+    a.hours,
+    a.org_id,
+    a.plan_task_id,
+    a.status,
+    cte2.deler,
+    a.hours / cte2.deler::double precision AS hours_verdeeld,
+    a.act_id,
+    a.prj_id,
+    a.fromdate,
+    a.todate,
+    a.can_allocate
+   FROM cte1 a,
+    cte2
+  WHERE a.plan_task_id = cte2.plan_task_id
+UNION ALL
+ SELECT a.fromdate AS datum,
+    a.cust_id,
+    a.hours,
+    a.org_id,
+    a.plan_task_id,
+    a.status,
+    1 AS deler,
+    a.hours AS hours_verdeeld,
+    a.act_id,
+    a.prj_id,
+    a.fromdate,
+    a.todate,
+    a.can_allocate
+   FROM "PLAN_TASK" a
+  WHERE (a.todate - a.fromdate) < 7 AND a.todate >= (CURRENT_DATE - 7);
+
+CREATE OR REPLACE VIEW public.viwx_03_plan_union
+AS WITH cte AS (
+         SELECT 'plan_task'::character varying(20) AS bron,
+            viwx_02_plan_task_verdeeld.plan_task_id AS pk_id,
+            viwx_02_plan_task_verdeeld.datum,
+            viwx_02_plan_task_verdeeld.act_id,
+            viwx_02_plan_task_verdeeld.prj_id,
+            viwx_02_plan_task_verdeeld.cust_id,
+            viwx_02_plan_task_verdeeld.fromdate,
+            viwx_02_plan_task_verdeeld.todate,
+            NULL::integer AS emp_id,
+            viwx_02_plan_task_verdeeld.hours_verdeeld AS uren_taakplan,
+            NULL::double precision AS uren_aangevraagd,
+            NULL::double precision AS uren_gealloceerd,
+            NULL::double precision AS uren_ingepland,
+            NULL::integer AS skill_id,
+            viwx_02_plan_task_verdeeld.can_allocate,
+            viwx_02_plan_task_verdeeld.status,
+            viwx_02_plan_task_verdeeld.org_id,
+            NULL::integer AS status_alloc
+           FROM viwx_02_plan_task_verdeeld
+        UNION ALL
+         SELECT 'plan_request'::character varying(20) AS bron,
+            a.plan_request_id,
+            a.datum,
+            b_1.act_id,
+            b_1.prj_id,
+            b_1.cust_id,
+            a.fromdate,
+            a.todate,
+            a.emp_id,
+            NULL::double precision AS uren_taakplan,
+            a.hours_verdeeld AS uren_aangevraagd,
+            NULL::double precision AS uren_gealloceerd,
+            NULL::double precision AS uren_ingepland,
+            a.skill_id,
+            NULL::integer AS can_allocate,
+            a.status,
+            a.org_id,
+            a.status_alloc
+           FROM viwx_02_plan_request_verdeeld a
+             LEFT JOIN "PLAN_TASK" b_1 ON a.plan_task_id = b_1.plan_task_id
+        UNION ALL
+         SELECT 'plan_alloc'::character varying(20) AS bron,
+            a.plan_alloc_id,
+            a.datum,
+            a.act_id,
+            a.prj_id,
+            a.cust_id,
+            a.fromdate,
+            a.todate,
+            a.emp_id,
+            NULL::double precision AS float8,
+            NULL::double precision AS float8,
+            a.hours_verdeeld,
+            NULL::double precision AS float8,
+            b_1.skill_id,
+            NULL::integer AS can_allocate,
+            a.status,
+            b_1.org_id,
+            a.status_alloc
+           FROM viwx_02_plan_alloc_verdeeld a
+             LEFT JOIN "PLAN_REQUEST" b_1 ON a.plan_request_id = b_1.plan_request_id
+        UNION ALL
+         SELECT 'plan_week'::character varying(20) AS bron,
+            a.plan_week_id,
+            a.fromdate AS datum,
+            a.act_id,
+            a.prj_id,
+            a.cust_id,
+            a.fromdate,
+            a.todate,
+            a.emp_id,
+            NULL::double precision AS float8,
+            NULL::double precision AS float8,
+            NULL::double precision AS float8,
+            a.hours,
+            c.skill_id,
+            NULL::integer AS can_allocate,
+            NULL::integer AS status,
+            a.org_id,
+            NULL::integer AS status_alloc
+           FROM "PLAN_WEEK" a
+             LEFT JOIN "PLAN_ALLOC" b_1 ON a.plan_alloc_id = b_1.plan_alloc_id
+             LEFT JOIN "PLAN_REQUEST" c ON b_1.plan_request_id = c.plan_request_id
+        )
+ SELECT cte.bron,
+    cte.datum,
+    cte.act_id,
+    cte.prj_id,
+    cte.cust_id,
+    cte.fromdate,
+    cte.todate,
+    cte.emp_id,
+    cte.uren_taakplan,
+    cte.uren_aangevraagd,
+    cte.uren_gealloceerd,
+    cte.uren_ingepland,
+    b.item AS skill,
+    cte.can_allocate,
+    cte.status,
+    cte.org_id,
+    cte.pk_id,
+    cte.status_alloc
+   FROM cte
+     LEFT JOIN "SYS_OPT_ITM" b ON cte.skill_id = b.item_id;
+
+CREATE OR REPLACE VIEW public.viwx_04_union_all
+AS SELECT 'hrs'::text AS bron,
+    a.act_id,
+    a.cust_id,
+    a.emp_id,
+    a.org_id,
+    a.prj_id,
+    a.datum,
+    a.uren,
+    NULL::double precision AS hours,
+    NULL::double precision AS fte,
+    NULL::double precision AS uren_taakplan,
+    NULL::double precision AS uren_aangevraagd,
+    NULL::double precision AS uren_gealloceerd,
+    NULL::double precision AS uren_ingepland,
+    b.skill::character varying(50) AS skill,
+    a.datum AS fromdate,
+    a.datum AS todate,
+    NULL::integer AS can_allocate,
+    NULL::integer AS status,
+    NULL::integer AS status_alloc
+   FROM vw_tableau_hrs a
+     LEFT JOIN viwx_01_emp_skill b ON a.emp_id = b.emp_id
+  WHERE a.uren <> 0::double precision
+UNION ALL
+ SELECT 'emp_contract'::text AS bron,
+    NULL::integer AS act_id,
+    NULL::integer AS cust_id,
+    a.emp_id,
+    b.org_id,
+    NULL::integer AS prj_id,
+    a.datum,
+    NULL::double precision AS uren,
+    a.hours,
+    a.fte,
+    NULL::double precision AS uren_taakplan,
+    NULL::double precision AS uren_aangevraagd,
+    NULL::double precision AS uren_gealloceerd,
+    NULL::double precision AS uren_ingepland,
+    c.skill::character varying(50) AS skill,
+    a.datum AS fromdate,
+    a.datum AS todate,
+    NULL::integer AS can_allocate,
+    NULL::integer AS status,
+    NULL::integer AS status_alloc
+   FROM viwx_02_contract_per_week a
+     JOIN ( SELECT vw_tableau_hrs.emp_id,
+            min(vw_tableau_hrs.org_id) AS org_id
+           FROM vw_tableau_hrs
+          GROUP BY vw_tableau_hrs.emp_id) b ON a.emp_id = b.emp_id
+     LEFT JOIN viwx_01_emp_skill c ON a.emp_id = c.emp_id
+UNION ALL
+ SELECT a.bron,
+    a.act_id,
+    a.cust_id,
+    a.emp_id,
+        CASE
+            WHEN a.org_id IS NULL THEN b.org_id
+            ELSE a.org_id
+        END AS org_id,
+    a.prj_id,
+    a.datum,
+    NULL::double precision AS uren,
+    NULL::double precision AS hours,
+    NULL::double precision AS fte,
+    a.uren_taakplan,
+    a.uren_aangevraagd,
+    a.uren_gealloceerd,
+    a.uren_ingepland,
+    a.skill,
+    a.fromdate,
+    a.todate,
+    a.can_allocate,
+    a.status,
+    a.status_alloc
+   FROM viwx_03_plan_union a
+     LEFT JOIN ( SELECT vw_tableau_hrs.emp_id,
+            min(vw_tableau_hrs.org_id) AS org_id
+           FROM vw_tableau_hrs
+          GROUP BY vw_tableau_hrs.emp_id) b ON a.emp_id = b.emp_id;
+
+CREATE OR REPLACE VIEW public.viwx_timetell_ivdi
+AS SELECT hrs.bron,
+    hrs.datum,
+        CASE
+            WHEN hrs.datum > CURRENT_DATE THEN 'Toekomst'::text
+            ELSE 'Historie'::text
+        END AS toekomst_of_historie,
+    hrs.uren,
+    act.activiteit,
+    cust.opdrachtgever,
+    emp.mdw_achternaam,
+    emp.mdw_voornaam,
+    emp.mdw_tussenvoegsels,
+    emp.mdw_nummer,
+    emp.mdw_categorie,
+    org.organisatie,
+    prj.project_nummer,
+        CASE
+            WHEN hrs.bron = 'emp_contract'::text THEN '_Normuren'::character varying
+            ELSE prj.project
+        END AS project,
+    prj.project_type,
+    prj.project_id,
+    parent.project_nummer AS project_nummer_bovenliggend,
+    parent.project AS project_bovenliggend,
+    parent.project_type AS project_type_bovenliggend,
+    parent.project_id AS project_id_bovenliggend,
+    prj_niv.project_niveau,
+    prj_niv.project_op_niveau_0,
+    prj_niv.project_op_niveau_1,
+    prj_niv.project_id_op_niveau_0,
+    prj_niv.project_id_op_niveau_1,
+        CASE
+            WHEN prj.project_type = 'A'::text AND "right"(prj.project_nummer::text, 1) = '1'::text THEN 'Regietaken'::text
+            WHEN prj.project_type = 'A'::text AND "right"(prj.project_nummer::text, 1) = '2'::text THEN 'Gepland in stand houden'::text
+            WHEN prj.project_type = 'A'::text AND "right"(prj.project_nummer::text, 1) = '3'::text THEN 'Onvoorzien in stand houden'::text
+            WHEN prj.project_type = 'A'::text AND "right"(prj.project_nummer::text, 1) = '4'::text THEN 'Changes'::text
+            WHEN prj.project_type = 'A'::text AND "right"(prj.project_nummer::text, 1) = '5'::text THEN 'LC'::text
+            WHEN prj.project_type = 'P'::text AND "right"(prj.project_nummer::text, 1) = '1'::text THEN 'Intake'::text
+            WHEN prj.project_type = 'P'::text AND "right"(prj.project_nummer::text, 1) = '2'::text THEN 'Verkenning'::text
+            WHEN prj.project_type = 'P'::text AND "right"(prj.project_nummer::text, 1) = '3'::text THEN 'Definitie'::text
+            WHEN prj.project_type = 'P'::text AND "right"(prj.project_nummer::text, 1) = '4'::text THEN 'Realisatie/Implementatie/Nazorg'::text
+            WHEN prj.project_type = 'P'::text AND "right"(prj.project_nummer::text, 1) = '5'::text THEN 'Agile'::text
+            WHEN hrs.bron = 'emp_contract'::text THEN 'Normuren'::text
+            ELSE '?'::text
+        END AS app_prj_detail,
+    hrs.fte AS contract_fte,
+    hrs.hours AS contract_uren,
+    CURRENT_TIMESTAMP AS datum_tijd_verversen_extract,
+    hrs.uren_taakplan,
+    hrs.uren_aangevraagd,
+    hrs.uren_gealloceerd,
+    hrs.uren_ingepland,
+    hrs.skill,
+    hrs.fromdate,
+    hrs.todate,
+    hrs.can_allocate,
+    hrs.status,
+    hrs.status_alloc
+   FROM viwx_04_union_all hrs
+     LEFT JOIN vw_tableau_act act ON hrs.act_id = act.act_id
+     LEFT JOIN vw_tableau_cust cust ON hrs.cust_id = cust.cust_id
+     LEFT JOIN viw_tableau_emp emp ON hrs.emp_id = emp.emp_id
+     LEFT JOIN vw_tableau_org org ON hrs.org_id = org.org_id
+     LEFT JOIN vw_tableau_prj prj ON hrs.prj_id = prj.prj_id
+     LEFT JOIN vw_tableau_sys_prj_niv prj_niv ON hrs.prj_id = prj_niv.prj_id
+     LEFT JOIN vw_tableau_prj parent ON prj.parent_id = parent.prj_id;
