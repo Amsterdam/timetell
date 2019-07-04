@@ -11,7 +11,7 @@ See the Timetell [documentation](doc/) for more information regarding the data m
 
 ## How to use
 
-###Clone the repository
+### Clone the repository
 ```
 git clone https://github.com/Amsterdam/timetell.git
 cd timetell
@@ -60,6 +60,9 @@ cd src/import
 pip install -r requirements.txt
 ```
 4. Download the csv files to a local folder. 
+
 `python download.py $OBJECTSTORE_CONTAINER data`
+
 5. Import the data and create views using earlier set SQL_QUERY and the DATABASE_NAME arguments
+
 `python importer.py data $SQL_QUERY`
