@@ -60,12 +60,13 @@ async def _download_file(url: str, target: pathlib.Path, session: aiohttp.Client
 
 
 def parser():
-    # parse arguments
     parser = argparse.ArgumentParser(description='Timetell CSV downloader')
     parser.add_argument(
-        'sourcedir', help='Source directory on objectstore')
+        'sourcedir',
+        help='Source directory on objectstore: uploads or uploadIVCLDI')
     parser.add_argument(
-        'targetdir', help='Target directory on local filesystem')
+        'targetdir',
+        help='Target directory on local filesystem, for example: /data')
     parser.add_argument(
         '--overwrite', '-o', action='store_true',
         help='Overwrite if targetdir exists')
@@ -80,6 +81,7 @@ def cli():
     # create eventloop
     asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
     eventloop = asyncio.get_event_loop()
+
     args = parser().parse_args()
     # init logging
     logging.basicConfig(level=args.loglevel)

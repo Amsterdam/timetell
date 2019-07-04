@@ -11,20 +11,33 @@ See the Timetell [documentation](doc/) for more information regarding the data m
 
 ## How to use
 
-Before being able to run the commands described below, you need to have the following environment credentials added to be able to access the objectstore. This is also needed for configuring these variables in production with our Ansible/Jenkins pipeline.
+###Clone the repository
+```
+git clone https://github.com/Amsterdam/timetell.git
+cd timetell
+```
 
-### Environment variables:
+### Set objectstore environment variables
 ```
 export OBJECTSTORE_USERNAME=timetell
 export OBJECTSTORE_PASSWORD=#################
 export OBJECTSTORE_PROJECT_ID=#################
 ```
+### Set container sql query and database name
+For each organisation specific arguments need to be set to load them correctly and separately into each dedicated database. For example:
+```
+export DATABASE_NAME=timetell
+export OBJECTSTORE_CONTAINER=uploads
+export SQL_QUERY=datapunt
+```
 
-Clone the repository:
-```
-git clone https://github.com/Amsterdam/timetell.git
-cd timetell
-```
+These can be set by running one of these bash commands:
+
+#### Onderzoek, informatie, Statistiek
+`sh ./src/import/env-datapunt-dev.sh`
+
+#### Informatievoorziening Cluster Dienstverlening
+`sh ./src/import/env-dienstverlening-dev.sh`
 
 ## Running using [Docker](https://www.docker.com)
 ```
@@ -34,19 +47,19 @@ docker-compose up
 
 ## Local Development
 
-1. Start the database using Docker from the root folder
+1. Start the database using Docker from the root folder using the specified DATABASE_NAME argument.
 `docker-compose up -d database`
-2. Create a virtual environment, for example in the root folder:
+2. Create a virtual environment, for example in the root folder.
 ```
 virtualenv --python=$(which python3) venv
 source venv/bin/activate
 ```
-3. Install the necessary python packages
+3. Install the necessary Python packages.
 ```
 cd src/import
 pip install -r requirements.txt
 ```
-4. Download the csv files to a local folder 
-`python download.py upload data`
-5. Import the data and create views for a specific customer: datapunt or dienstverlening.
-`python importer.py data datapunt`
+4. Download the csv files to a local folder. 
+`python download.py $OBJECTSTORE_FOLDER data`
+5. Import the data and create views using earlier set SQL_QUERY and the DATABASE_NAME arguments
+`python importer.py data $SQL_QUERY`

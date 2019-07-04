@@ -579,7 +579,7 @@ ALTER TABLE "{schemaname}"."{tablename}"
     },
     VW_LABEL_PRJ={
         'create': """
-CREATE TABLE IF NOT EXISTS "{schemaname}"."{tablename}" (   
+CREATE TABLE IF NOT EXISTS "{schemaname}"."{tablename}" (
     dim_label_id integer not null,
     dim_id integer,
     "type" integer,
@@ -1233,12 +1233,12 @@ def cli():
     if not csv_dir.exists():
         _logger.fatal("directory {} doesn't exist".format(csv_dir))
 
-    # initialize database with dev params, or docker variables
-    db_user = os.getenv("DATABASE_USERNAME", 'timetell')
-    db_password = os.getenv("DATABASE_PASSWORD", 'insecure')
-    db_port = os.getenv("DATABASE_PORT", '5444')
-    db_name = os.getenv("DATABASE_DB", 'timetell')
-    db_host = os.getenv("DATABASE_HOST", 'localhost')
+    # initialize database with environment/docker arguments
+    db_user = os.getenv("DATABASE_USER")
+    db_password = os.getenv("DATABASE_PASSWORD")
+    db_port = os.getenv("DATABASE_PORT")
+    db_name = os.getenv("DATABASE_NAME")
+    db_host = os.getenv("DATABASE_HOST")
     dsn = "postgresql://{}:{}@{}:{}/{}".format(db_user, db_password, db_host, db_port, db_name)
     eventloop.run_until_complete(initialize(dsn))
 
