@@ -9,7 +9,7 @@ See the Timetell [documentation](doc/) for more information regarding the data m
 
 
 
-## How to use
+## How to run
 
 ### Clone the repository
 ```
@@ -66,3 +66,12 @@ pip install -r requirements.txt
 5. Import the data and create views using earlier set SQL_QUERY and the DATABASE_NAME arguments
 
 `python importer.py data $SQL_QUERY`
+
+# How to access database locally after import
+
+The database can be accessed locally with pgadmin for example using:
+- host: localhost
+- port: 5444
+- database: timetell (or timetelldienstverlening)
+- username: timetell
+- password: insecure
