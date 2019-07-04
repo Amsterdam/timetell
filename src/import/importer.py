@@ -12,6 +12,7 @@ import pkg_resources
 import secrets
 import signal
 import typing as T
+import os
 
 import asyncpg.pool
 import uvloop
@@ -943,7 +944,7 @@ _CUSTOMER_SETTINGS = dict(
            'SYS_PRJ_NIV', 'HRS', 'SYS_OPT_ITM', 'VW_LABEL_PRJ'
         ),
         sql=pkg_resources.resource_string(
-            __name__, 'datapunt.sql'
+            __name__, 'sql/datapunt.sql'
         ).decode('utf-8'),
         tables_to_check=["v_timetell_projectenoverzicht", "v_timetell_projectenoverzicht_3",
                          "v_timetell_projectenoverzicht_4"]
@@ -955,7 +956,7 @@ _CUSTOMER_SETTINGS = dict(
             'PLAN_TASK', 'PLAN_PRJ'
         ),
         sql=pkg_resources.resource_string(
-            __name__, 'dienstverlening.sql'
+            __name__, 'sql/dienstverlening.sql'
         ).decode('utf-8'),
         tables_to_check=["viw_tableau_datum", "viw_tableau_emp", "viw_tableau_hrs_union_all_normuren",
                          "viw_tableau_normuren_per_werkdag", "viw_timetell_ivdi", "vw_tableau_act", "vw_tableau_cust",
@@ -1185,7 +1186,8 @@ async def assert_has_data(table_name):
 
 
 async def run_sql(sql: str):
-    """ Run arbitrary sql. {schemaname} placeholders will be replaced by the
+    """
+    Run arbitrary sql. {schemaname} placeholders will be replaced by the
     temporary schemaname.
 
     :param sql:
@@ -1193,10 +1195,27 @@ async def run_sql(sql: str):
     await _pool.execute(sql.format(schemaname=_importschema))
 
 
+def parser():
+    """
+    Input arguments
+    """
+    parser = argparse.ArgumentParser(description='Timetell CSV importer')
+    parser.add_argument(
+        '-d', '--csvdir', action='store', default='.', metavar='PATH',
+        help='full directorypath containing csv files, for example: /data')
+    parser.add_argument('customer', choices=list(_CUSTOMER_SETTINGS.keys()), help='customer name from timetell for parsing views later')
+    parser.add_argument(
+        '-v', '--verbose', dest='loglevel', action='store_const',
+        const=logging.DEBUG, default=logging.INFO,
+        help='set debug loglevel (default INFO)')
+    return parser
+
+
 def cli():
     """ Simple CLI to run an import from files on the filesystem. """
+    args = parser().parse_args()
 
-    async def csv_generator(tablename) -> T.AsyncGenerator:
+    async def csv_generator(csv_dir, tablename) -> T.AsyncGenerator:
         f = (csv_dir / ('TT_' + tablename + '.csv')).open(newline='', encoding='WINDOWS-1252')
         try:
             for row in csv.reader(f, delimiter=';'):
@@ -1208,36 +1227,28 @@ def cli():
     asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
     eventloop = asyncio.get_event_loop()
 
-    parser = argparse.ArgumentParser(description='Timetell CSV importer')
-    parser.add_argument(
-        'dsn', metavar='DSN', help='postgresql connection string')
-    parser.add_argument('customer', choices=list(_CUSTOMER_SETTINGS.keys()), help='cutomer name')
-    parser.add_argument(
-        '-d', '--csvdir', action='store', default='.', metavar='PATH',
-        help='dir containing csv files')
-    parser.add_argument(
-        '-v', '--verbose', dest='loglevel', action='store_const',
-        const=logging.DEBUG, default=logging.INFO,
-        help='set debug loglevel (default INFO)')
-    args = parser.parse_args()
-
-    # init logging
     logging.basicConfig(level=args.loglevel)
     # make sure CSV dir exists
     csv_dir = pathlib.Path(args.csvdir)
     if not csv_dir.exists():
         _logger.fatal("directory {} doesn't exist".format(csv_dir))
-    dsn = args.dsn
-    # initialize database
+
+    # initialize database with dev params, or docker variables
+    db_user = os.getenv("DATABASE_USERNAME", 'timetell')
+    db_password = os.getenv("DATABASE_PASSWORD", 'insecure')
+    db_port = os.getenv("DATABASE_PORT", '5444')
+    db_name = os.getenv("DATABASE_DB", 'timetell')
+    db_host = os.getenv("DATABASE_HOST", 'localhost')
+    dsn = "postgresql://{}:{}@{}:{}/{}".format(db_user, db_password, db_host, db_port, db_name)
     eventloop.run_until_complete(initialize(dsn))
-    # get customer settings
+
     customer = _CUSTOMER_SETTINGS[args.customer]
-    # run import
+
     try:
         # run import
         coros = []
         for table_name in customer['tables']:
-            coros.append(populate(table_name, csv_generator(table_name)))
+            coros.append(populate(table_name, csv_generator(csv_dir, table_name)))
         eventloop.run_until_complete(asyncio.gather(*coros))
         # create constraints
         for table_name in customer['tables']:

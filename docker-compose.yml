@@ -1,25 +1,23 @@
 version: "3.0"
 services:
-
   database:
-    image: postgres:9.5
+    image: amsterdam/postgres
     ports:
-      - "5432:5432"
+      - "5444:5432"
     environment:
       POSTGRES_DB: timetell
       POSTGRES_USER: timetell
-      POSTGRES_PASSWORD: timetell
-
-  test:
-    build:
-      context: .
-      dockerfile: Dockerfile.test
-    depends_on:
-      - database
+      POSTGRES_PASSWORD: insecure
+  importer:
+    build: ./src/import
+    links:
+      - database:database
     environment:
-      DB_DATABASE: timetell
-      DB_USER: timetell
-      DB_PASSWORD: timetell
-      DB_HOST: database
-      DB_PORT: 5432
-    command: ["make", "test"]
+      DATABASE_NAME: timetell
+      DATABASE_USER: timetell
+      DATABASE_PASSWORD: insecure
+      DATABASE_PORT: "5432"
+      DATABASE_HOST: database
+      OBJECTSTORE_PROJECT_ID:
+      OBJECTSTORE_USERNAME:
+      OBJECTSTORE_PASSWORD:

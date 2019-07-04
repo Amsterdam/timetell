@@ -5,34 +5,30 @@ import logging
 import urllib.parse
 import pathlib
 import typing as T
+import os
 
 import uvloop
-
-_CLOUDVPS_URL = "https://{projectid}.objectstore.eu/"
 
 _logger = logging.getLogger(__name__)
 
 
-async def download(cloudvps_project: str, user: T.Optional[str],
+async def download(projectid: str, username: str, password: str,
                    sourcedir: str, targetdir: str, overwrite: bool):
-    # first create the targetpath
+
+    url = "https://{}.objectstore.eu/".format(projectid)
+
     target = pathlib.Path(targetdir)
     if target.exists() and not overwrite:
         raise FileExistsError
-    elif not target.exists():
-        target.mkdir(parents=True)
-    # do work
-    url = _CLOUDVPS_URL.format(projectid=cloudvps_project)
+
     url = urllib.parse.urljoin(url, sourcedir)
     _logger.debug("Downloading file listing from %s", url)
     headers = {
         'Accept': 'application/json'
     }
-    if user is not None:
-        assert ':' in user, 'User must be <user:password>; no colon found ' \
-                            'in {}'.format(user)
-        user, password = user.split(':', maxsplit=1)
-        headers['Authorization'] = aiohttp.BasicAuth(user, password).encode()
+
+    headers['Authorization'] = aiohttp.BasicAuth(username, password).encode()
+
     async with aiohttp.ClientSession() as session:
         async with session.get(url, headers=headers) as response:
             if response.status != 200:
@@ -47,7 +43,7 @@ async def download(cloudvps_project: str, user: T.Optional[str],
         ])
 
 
-async def _download_file(url:str, target: pathlib.Path, session: aiohttp.ClientSession, authz: str):
+async def _download_file(url: str, target: pathlib.Path, session: aiohttp.ClientSession, authz: str):
     # remove target if exists
     if target.exists():
         target.unlink()
@@ -63,23 +59,13 @@ async def _download_file(url:str, target: pathlib.Path, session: aiohttp.ClientS
         _logger.debug("Done downloading %s", target)
 
 
-def cli():
-    # create eventloop
-    asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
-    eventloop = asyncio.get_event_loop()
-
+def parser():
     # parse arguments
     parser = argparse.ArgumentParser(description='Timetell CSV downloader')
     parser.add_argument(
-        'cloudvpsproject', metavar='PROJECTID', help='CloudVPS project ID')
+        'sourcedir', help='Source directory on objectstore')
     parser.add_argument(
-        'sourcedir', metavar='PATH', help='Source directory on objectstore')
-    parser.add_argument(
-        'targetdir', metavar='PATH', help='Target directory on local filesystem')
-    parser.add_argument(
-        '--user', '-u', action='store', metavar='<user:password>',
-        help='Specify the user name and password to use for objectstore '
-             'authentication.')
+        'targetdir', help='Target directory on local filesystem')
     parser.add_argument(
         '--overwrite', '-o', action='store_true',
         help='Overwrite if targetdir exists')
@@ -87,12 +73,24 @@ def cli():
         '--verbose', '-v', dest='loglevel', action='store_const',
         const=logging.DEBUG, default=logging.INFO,
         help='set loglevel DEBUG (default INFO)')
-    args = parser.parse_args()
+    return parser
 
+
+def cli():
+    # create eventloop
+    asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
+    eventloop = asyncio.get_event_loop()
+    args = parser().parse_args()
     # init logging
     logging.basicConfig(level=args.loglevel)
 
-    # download files
     eventloop.run_until_complete(
-        download(args.cloudvpsproject, args.user, args.sourcedir, args.targetdir, args.overwrite)
+        download(os.environ["OBJECTSTORE_PROJECT_ID"],
+                 os.environ["OBJECTSTORE_USERNAME"],
+                 os.environ["OBJECTSTORE_PASSWORD"],
+                 args.sourcedir, args.targetdir, args.overwrite)
     )
+
+
+if __name__ == '__main__':
+    cli()
