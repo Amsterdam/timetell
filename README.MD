@@ -60,6 +60,6 @@ cd src/import
 pip install -r requirements.txt
 ```
 4. Download the csv files to a local folder. 
-`python download.py $OBJECTSTORE_FOLDER data`
+`python download.py $OBJECTSTORE_CONTAINER data`
 5. Import the data and create views using earlier set SQL_QUERY and the DATABASE_NAME arguments
 `python importer.py data $SQL_QUERY`
