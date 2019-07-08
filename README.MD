@@ -59,13 +59,13 @@ source venv/bin/activate
 cd src/import
 pip install -r requirements.txt
 ```
-4. Download the csv files to a local folder. 
+4. Download the csv files to a local folder. (it uses the default overwrite option) 
 
-`python download.py $OBJECTSTORE_CONTAINER data`
+`python download.py -s $OBJECTSTORE_CONTAINER -t data`
 
 5. Import the data and create views using earlier set SQL_QUERY and the DATABASE_NAME arguments
 
-`python importer.py data $SQL_QUERY`
+`python import.py -s data $SQL_QUERY`
 
 # How to access database locally after import
 

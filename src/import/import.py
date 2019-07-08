@@ -1197,58 +1197,76 @@ async def run_sql(sql: str):
 
 def parser():
     """
-    Input arguments
+    Command line arguments
     """
     parser = argparse.ArgumentParser(description='Timetell CSV importer')
     parser.add_argument(
-        '-d', '--csvdir', action='store', default='.', metavar='PATH',
+        '-s', '--sourcedir', action='store', default='.', metavar='PATH',
         help='full directorypath containing csv files, for example: /data')
-    parser.add_argument('customer', choices=list(_CUSTOMER_SETTINGS.keys()), help='customer name from timetell for parsing views later')
+    parser.add_argument(
+        '-c', '--customer', choices=list(_CUSTOMER_SETTINGS.keys()),
+        help='customer name from timetell for parsing views later')
     parser.add_argument(
         '-v', '--verbose', dest='loglevel', action='store_const',
         const=logging.DEBUG, default=logging.INFO,
-        help='set debug loglevel (default INFO)')
+        help='Set debug loglevel')
     return parser
 
 
-def cli():
-    """ Simple CLI to run an import from files on the filesystem. """
-    args = parser().parse_args()
+def database_connection():
+    """
+    Create the database connection string.
+    The connection uses stored environment/docker-compose arguments.
+    """
+    db_user = os.getenv("DATABASE_USER", 'timetell')
+    db_password = os.getenv("DATABASE_PASSWORD", 'insecure')
+    db_port = os.getenv("DATABASE_PORT", 5444)
+    db_name = os.getenv("DATABASE_NAME", 'timetell')
+    db_host = os.getenv("DATABASE_HOST", 'localhost')
+    dsn = "postgresql://{}:{}@{}:{}/{}".format(db_user, db_password, db_host, db_port, db_name)
+    return dsn
 
-    async def csv_generator(csv_dir, tablename) -> T.AsyncGenerator:
-        f = (csv_dir / ('TT_' + tablename + '.csv')).open(newline='', encoding='WINDOWS-1252')
-        try:
-            for row in csv.reader(f, delimiter=';'):
-                yield row
-        finally:
-            f.close()
 
-    # create eventloop
-    asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
-    eventloop = asyncio.get_event_loop()
+async def csv_generator(source_dir, tablename) -> T.AsyncGenerator:
+    """
+    Generate filename and iterate over each row.
+    """
+    # Make sure CSV dir exists
+    csv_dir = pathlib.Path(source_dir)
 
-    logging.basicConfig(level=args.loglevel)
-    # make sure CSV dir exists
-    csv_dir = pathlib.Path(args.csvdir)
     if not csv_dir.exists():
         _logger.fatal("directory {} doesn't exist".format(csv_dir))
 
-    # initialize database with environment/docker arguments
-    db_user = os.getenv("DATABASE_USER")
-    db_password = os.getenv("DATABASE_PASSWORD")
-    db_port = os.getenv("DATABASE_PORT")
-    db_name = os.getenv("DATABASE_NAME")
-    db_host = os.getenv("DATABASE_HOST")
-    dsn = "postgresql://{}:{}@{}:{}/{}".format(db_user, db_password, db_host, db_port, db_name)
-    eventloop.run_until_complete(initialize(dsn))
+    f = (csv_dir / ('TT_' + tablename + '.csv')).open(newline='', encoding='WINDOWS-1252')
+    try:
+        for row in csv.reader(f, delimiter=';'):
+            yield row
+    finally:
+        f.close()
 
+
+def main():
+    """
+    Run the import creating tables and views using the sql based on the customer (datapunt or dienstverlening)
+    Insert the specific csv files into the tables with the same name.
+    """
+    args = parser().parse_args()
+    logging.basicConfig(level=args.loglevel)
+
+    # Create eventloop
+    asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
+    eventloop = asyncio.get_event_loop()
+
+    # Create database connection
+    eventloop.run_until_complete(initialize(database_connection()))
+
+    # Get the csv names and table names based on the customer name
     customer = _CUSTOMER_SETTINGS[args.customer]
 
     try:
-        # run import
         coros = []
         for table_name in customer['tables']:
-            coros.append(populate(table_name, csv_generator(csv_dir, table_name)))
+            coros.append(populate(table_name, csv_generator(args.sourcedir, table_name)))
         eventloop.run_until_complete(asyncio.gather(*coros))
         # create constraints
         for table_name in customer['tables']:
@@ -1271,4 +1289,4 @@ def cli():
 
 
 if __name__ == '__main__':
-    cli()
+    main()

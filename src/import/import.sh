@@ -13,5 +13,5 @@ set -x
 # export SQL_QUERY=dienstverlening
 
 # Don't forget to add / to access root folder for local path
-python downloader.py $OBJECTSTORE_CONTAINER /data --overwrite
-python importer.py -d /data $SQL_QUERY
+python download.py $OBJECTSTORE_CONTAINER /data --overwrite
+python import.py /data $SQL_QUERY
