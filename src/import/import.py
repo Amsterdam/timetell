@@ -405,7 +405,8 @@ CREATE TABLE IF NOT EXISTS "{schemaname}"."{tablename}" (
     prjleader integer,
     tag integer,
     tagtype integer,
-    tagdate date
+    tagdate date,
+    prj_links_id serial PRIMARY KEY
 );
 """,
         'constraints': """
