@@ -405,8 +405,7 @@ CREATE TABLE IF NOT EXISTS "{schemaname}"."{tablename}" (
     prjleader integer,
     tag integer,
     tagtype integer,
-    tagdate date,
-    prj_links_id serial PRIMARY KEY
+    tagdate date
 );
 """,
         'constraints': """
@@ -1171,6 +1170,15 @@ async def set_constraints(tablename: str):
         _logger.debug("Constraints created for table {}".format(tablename))
 
 
+async def add_primary_key(schemaname: str, tablename: str):
+    _logger.debug("Add Primary Key to table %s to work properly with Django", tablename)
+    primary_key = """
+    ALTER TABLE "{schemaname}"."{tablename}" ADD COLUMN
+    {fieldname}_id serial PRIMARY KEY;
+    """
+    await _pool.execute(primary_key.format(schemaname=schemaname, tablename=tablename, fieldname=tablename.lower()))
+
+
 async def publish():
     q = 'DROP SCHEMA IF EXISTS "public" CASCADE; ' \
         'ALTER SCHEMA "{}" RENAME TO "public";'.format(_importschema)
@@ -1205,11 +1213,11 @@ def parser():
         '-s', '--sourcedir', action='store', default='.', metavar='PATH',
         help='full directorypath containing csv files, for example: /data')
     parser.add_argument(
-        '-c', '--customer', choices=list(_CUSTOMER_SETTINGS.keys()),
+        '-q', '--sqlquery', choices=list(_CUSTOMER_SETTINGS.keys()),
         help='customer name from timetell for parsing views later')
     parser.add_argument(
         '-v', '--verbose', dest='loglevel', action='store_const',
-        const=logging.DEBUG, default=logging.INFO,
+        const=logging.DEBUG, default=logging.DEBUG,
         help='Set debug loglevel')
     return parser
 
@@ -1262,7 +1270,7 @@ def main():
     eventloop.run_until_complete(initialize(database_connection()))
 
     # Get the csv names and table names based on the customer name
-    customer = _CUSTOMER_SETTINGS[args.customer]
+    customer = _CUSTOMER_SETTINGS[args.sqlquery]
 
     try:
         coros = []
@@ -1284,6 +1292,8 @@ def main():
         for table_name in customer['tables_to_check']:
             coros.append(assert_has_data(table_name))
         eventloop.run_until_complete(asyncio.gather(*coros))
+
+        eventloop.run_until_complete(add_primary_key(schemaname="public", tablename="PRJ_LINK"))
 
     finally:
         eventloop.run_until_complete(close())
