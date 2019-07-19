@@ -1,15 +1,15 @@
 version: "3.1"
 services:
   database:
-    image: amsterdam/postgres11
+    image: amsterdam/postgres
     ports:
       - "5444:5432"
     environment:
       POSTGRES_DB: timetell
       POSTGRES_USER: timetell
       POSTGRES_PASSWORD: insecure
-  import:
-    build: ./src/import
+  importer:
+    build: ./src/importer
     links:
       - database:database
     environment:
@@ -23,25 +23,18 @@ services:
       OBJECTSTORE_PROJECT_ID:
       OBJECTSTORE_USERNAME:
       OBJECTSTORE_PASSWORD:
-  adminer:
-    image: adminer
-    restart: always
+  web:
+    build: ./src
     ports:
-      - 8088:8080
-  postgraphile:
-    restart: always
-    image: graphile/postgraphile
-    depends_on:
+      - "8113:8000"
+    links:
       - database
-    networks:
-      - default
-    ports:
-      - 5000:5000
-    command: [
-      "postgraphile", 
-      "--watch", 
-      #"--jwt-token-identifier","public.jwt_token",
-      "--connection","postgres://timetell:insecure@database:5432/timetell", 
-      #"--jwt-secret","123456789",
-      #"--default-role","anonymous", 
-      "--schema", "public"] 
+    environment:
+      DATABASE_NAME: timetell
+      DATABASE_USER: timetell
+      DATABASE_PASSWORD: insecure
+      UWSGI_HTTP: ":8000"
+      UWSGI_MODULE: "ois_projects_employees.wsgi:application"
+      UWSGI_PROCESSES: 4
+      UWSGI_MASTER: 1
+      UWSGI_STATIC_MAP: "/static=/static"
