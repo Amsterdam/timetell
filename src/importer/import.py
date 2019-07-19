@@ -84,8 +84,8 @@ CREATE TABLE IF NOT EXISTS "{schemaname}"."{tablename}" (
     displayname integer,
     sex character varying(1),
     initials character varying(10),
-    nonactive integer,
-    activeforclk integer,
+    nonactive boolean,
+    activeforclk boolean,
     birthdate date,
     loginname character varying(50),
     password character varying(150),
@@ -1087,6 +1087,14 @@ async def _fieldconverters(tablename: str, headers: T.Tuple[str, ...]) -> T.Tupl
             return None
         return _int(s)
 
+    def _bool(s: str) -> bool:
+        if s == '1':
+            return True
+        if s == '0':
+            return False
+        if s == '':
+            return None
+
     q = """
 SELECT column_name, data_type
   FROM information_schema.columns
@@ -1116,6 +1124,8 @@ SELECT column_name, data_type
             columns[column['column_name']] = str
         elif dt == 'text':
             columns[column['column_name']] = str
+        elif dt == 'boolean':
+            columns[column['column_name']] = _bool
         else:
             raise Exception("Unknown column datatype: ", dt)
 

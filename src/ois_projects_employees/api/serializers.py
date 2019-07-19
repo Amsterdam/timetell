@@ -27,7 +27,7 @@ class ProjectSummarySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = models.Prj
-        fields = ('uri', 'nr', 'name')
+        fields = ('uri',  'prj_id', 'nr', 'name')
 
 
 class ProjectDetailSerializer(serializers.HyperlinkedModelSerializer):
@@ -39,7 +39,7 @@ class ProjectDetailSerializer(serializers.HyperlinkedModelSerializer):
 
     class Meta:
         model = models.Prj
-        fields = ('uri', 'parent', 'nr', 'name', 'status',
+        fields = ('uri', 'prj_id', 'parent', 'nr', 'name', 'status',
                   'fromdate', 'todate', 'employees')
 
 
