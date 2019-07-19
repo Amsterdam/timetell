@@ -6,7 +6,7 @@ services:
       POSTGRES_PASSWORD: insecure
       POSTGRES_USER: timetell
 
-  tests:
+  test:
     build: ../..
     links:
       - database
