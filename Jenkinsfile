@@ -32,11 +32,15 @@ node {
         }
     }
 
-    stage("Build dockers") {
+        stage("Build dockers") {
         tryStep "build", {
-            def api = docker.build("repo.data.amsterdam.nl/datapunt/timetell:${env.BUILD_NUMBER}", "timetell")
+            def api = docker.build("repo.data.amsterdam.nl/datapunt/timetell:${env.BUILD_NUMBER}", "src")
             api.push()
             api.push("acceptance")
+
+            def importer = docker.build("repo.data.amsterdam.nl/datapunt/timetell:${env.BUILD_NUMBER}", "src/importer")
+            importer.push()
+            importer.push("acceptance")
         }
     }
 }
