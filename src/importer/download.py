@@ -11,6 +11,7 @@ import errno
 import uvloop
 
 _logger = logging.getLogger(__name__)
+loglevel = None
 
 
 def create_dir_if_not_exists(directory):
@@ -28,7 +29,7 @@ def create_dir_if_not_exists(directory):
             raise
 
 
-async def download(projectid: str, username: str, password: str,
+async def download(projectid: str, username: str, password: str,  # noqa: E999
                    container: str, targetdir: str, overwrite: bool):
     """
     Logs in to stack.cloudvps.com with projectid, username and password
@@ -42,7 +43,7 @@ async def download(projectid: str, username: str, password: str,
     if not overwrite:
         raise FileExistsError
 
-    url = urllib.parse.urljoin(url, sourcedir)
+    url = urllib.parse.urljoin(url, container)
     _logger.debug("Downloading file listing from %s", url)
     headers = {
         'Accept': 'application/json'
@@ -90,7 +91,7 @@ def parser():
     """
     parser = argparse.ArgumentParser(description='Timetell CSV downloader')
     parser.add_argument(
-        '-s', '--sourcedir', default='uploads',
+        '-c', '--container', default='uploads',
         help='Source directory on objectstore: uploads or uploadIVCLDI')
     parser.add_argument(
         '-t', '--targetdir', default='data',
@@ -108,13 +109,14 @@ def parser():
 
 def cli():
     """
-    Download all files from a container from the objectstore using the stored environment variables:
+    Download all files from a container from the objectstore
+    using the stored environment variables:
     - OBJECTSTORE_PROJECT_ID
     - OBJECTSTORE_USERNAME
     - OBJECTSTORE_PASSWORD
 
     Using the passed arguments:
-    - sourcedir
+    - container
     - targetdir
     - overwrite (default: True)
     - verbose (default: logging.INFO)
@@ -132,7 +134,7 @@ def cli():
         download(os.environ["OBJECTSTORE_PROJECT_ID"],
                  os.environ["OBJECTSTORE_USERNAME"],
                  os.environ["OBJECTSTORE_PASSWORD"],
-                 args.sourcedir, args.targetdir, args.overwrite)
+                 args.container, args.targetdir, args.overwrite)
     )
 
 

@@ -280,9 +280,6 @@ class Emp(models.Model):
 
     projects = models.ManyToManyField(Prj, through='PrjLink')
 
-    #def get_employees_set(self):
-    #    return PrjLink.objects.filter(prjlink_prj_id_set__prj__prj_id=self.prj_id)
-
     def __str__(self):
         return "{} {} {}".format(self.firstname, self.middlename, self.lastname)
 
@@ -302,8 +299,6 @@ class PrjLink(models.Model):
     tagtype = models.IntegerField(blank=True, null=True)
     tagdate = models.DateField(blank=True, null=True)
     prj_link_id = models.IntegerField(primary_key=True)
-
-    #employee = models.ManyToManyField(Emp)
 
     class Meta:
         managed = False
@@ -384,18 +379,24 @@ class EmpOrg(models.Model):
 class Hrs(models.Model):
     hrs_id = models.IntegerField(primary_key=True)
     wk_id = models.IntegerField(blank=True, null=True)
-    emp = models.ForeignKey(Emp, on_delete=models.DO_NOTHING, blank=True, null=True)
-    act = models.ForeignKey(Act, on_delete=models.DO_NOTHING, blank=True, null=True)
-    prj = models.ForeignKey('Prj', on_delete=models.DO_NOTHING, blank=True, null=True)
-    cust = models.ForeignKey(Cust, on_delete=models.DO_NOTHING, blank=True, null=True)
-    org = models.ForeignKey('Org', on_delete=models.DO_NOTHING, blank=True, null=True)
+    emp = models.ForeignKey(Emp, on_delete=models.DO_NOTHING,
+                            blank=True, null=True)
+    act = models.ForeignKey(Act, on_delete=models.DO_NOTHING,
+                            blank=True, null=True)
+    prj = models.ForeignKey('Prj', on_delete=models.DO_NOTHING,
+                            blank=True, null=True)
+    cust = models.ForeignKey(Cust, on_delete=models.DO_NOTHING,
+                             blank=True, null=True)
+    org = models.ForeignKey('Org', on_delete=models.DO_NOTHING,
+                            blank=True, null=True)
     year = models.IntegerField(blank=True, null=True)
     month = models.IntegerField(blank=True, null=True)
     date = models.DateField(blank=True, null=True)
     fromtime = models.DateField(blank=True, null=True)
     totime = models.DateField(blank=True, null=True)
     hours = models.FloatField(blank=True, null=True)
-    break_field = models.FloatField(db_column='break', blank=True, null=True)  # Field renamed because it was a Python reserved word.
+    break_field = models.FloatField(db_column='break',
+                                    blank=True, null=True)  # Field renamed because it was a Python reserved word.
     overtime = models.FloatField(blank=True, null=True)
     internalrate = models.FloatField(blank=True, null=True)
     rate = models.FloatField(blank=True, null=True)
@@ -457,27 +458,39 @@ class SysOptItm(models.Model):
 
 class SysPrjNiv(models.Model):
     niv = models.IntegerField(primary_key=True)
-    niv_0 = models.ForeignKey(Prj, on_delete=models.DO_NOTHING, related_name='prj_niv_0', db_column='niv_id', blank=True, null=True)  # Field renamed because of name conflict.
+    niv_0 = models.ForeignKey(Prj, on_delete=models.DO_NOTHING,
+                              related_name='prj_niv_0', db_column='niv_id',
+                              blank=True, null=True)  # Field renamed because of name conflict.
     niv_name = models.CharField(max_length=50, blank=True, null=True)
-    niv0 = models.ForeignKey(Prj, on_delete=models.DO_NOTHING, blank=True, null=True, related_name='prj_niv0')
+    niv0 = models.ForeignKey(Prj, on_delete=models.DO_NOTHING,
+                             blank=True, null=True, related_name='prj_niv0')
     niv0_name = models.CharField(max_length=50, blank=True, null=True)
-    niv1 = models.ForeignKey(Prj, on_delete=models.DO_NOTHING, blank=True, null=True, related_name='prj_niv1')
+    niv1 = models.ForeignKey(Prj, on_delete=models.DO_NOTHING,
+                             blank=True, null=True, related_name='prj_niv1')
     niv1_name = models.CharField(max_length=50, blank=True, null=True)
-    niv2 = models.ForeignKey(Prj, on_delete=models.DO_NOTHING, blank=True, null=True, related_name='prj_niv2')
+    niv2 = models.ForeignKey(Prj, on_delete=models.DO_NOTHING,
+                             blank=True, null=True, related_name='prj_niv2')
     niv2_name = models.CharField(max_length=50, blank=True, null=True)
-    niv3 = models.ForeignKey(Prj, on_delete=models.DO_NOTHING, blank=True, null=True, related_name='prj_niv3')
+    niv3 = models.ForeignKey(Prj, on_delete=models.DO_NOTHING,
+                             blank=True, null=True, related_name='prj_niv3')
     niv3_name = models.CharField(max_length=50, blank=True, null=True)
-    niv4 = models.ForeignKey(Prj, on_delete=models.DO_NOTHING, blank=True, null=True, related_name='prj_niv4')
+    niv4 = models.ForeignKey(Prj, on_delete=models.DO_NOTHING,
+                             blank=True, null=True, related_name='prj_niv4')
     niv4_name = models.CharField(max_length=50, blank=True, null=True)
-    niv5 = models.ForeignKey(Prj, on_delete=models.DO_NOTHING, blank=True, null=True, related_name='prj_niv5')
+    niv5 = models.ForeignKey(Prj, on_delete=models.DO_NOTHING,
+                             blank=True, null=True, related_name='prj_niv5')
     niv5_name = models.CharField(max_length=50, blank=True, null=True)
-    niv6 = models.ForeignKey(Prj, on_delete=models.DO_NOTHING, blank=True, null=True, related_name='prj_niv6')
+    niv6 = models.ForeignKey(Prj, on_delete=models.DO_NOTHING,
+                             blank=True, null=True, related_name='prj_niv6')
     niv6_name = models.CharField(max_length=50, blank=True, null=True)
-    niv7 = models.ForeignKey(Prj, on_delete=models.DO_NOTHING, blank=True, null=True, related_name='prj_niv7')
+    niv7 = models.ForeignKey(Prj, on_delete=models.DO_NOTHING,
+                             blank=True, null=True, related_name='prj_niv7')
     niv7_name = models.CharField(max_length=50, blank=True, null=True)
-    niv8 = models.ForeignKey(Prj, on_delete=models.DO_NOTHING, blank=True, null=True, related_name='prj_niv8')
+    niv8 = models.ForeignKey(Prj, on_delete=models.DO_NOTHING,
+                             blank=True, null=True, related_name='prj_niv8')
     niv8_name = models.CharField(max_length=50, blank=True, null=True)
-    niv9 = models.ForeignKey(Prj, on_delete=models.DO_NOTHING, blank=True, null=True, related_name='prj_niv9')
+    niv9 = models.ForeignKey(Prj, on_delete=models.DO_NOTHING,
+                             blank=True, null=True, related_name='prj_niv9')
     niv9_name = models.CharField(max_length=50, blank=True, null=True)
     fullpath = models.CharField(max_length=200, blank=True, null=True)
 

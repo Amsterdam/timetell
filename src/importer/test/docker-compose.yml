@@ -1,0 +1,25 @@
+version: "3.1"
+services:
+  database:
+    image: amsterdam/postgres
+    ports:
+      - "5444:5432"
+    environment:
+      POSTGRES_DB: timetell
+      POSTGRES_USER: timetell
+      POSTGRES_PASSWORD: insecure
+  import:
+    build: ./src/import
+    links:
+      - database:database
+    environment:
+      DATABASE_NAME: 
+      DATABASE_USER: timetell
+      DATABASE_PASSWORD: insecure
+      DATABASE_PORT: 5432
+      DATABASE_HOST: database
+      SQL_QUERY: 
+      OBJECTSTORE_CONTAINER: 
+      OBJECTSTORE_PROJECT_ID:
+      OBJECTSTORE_USERNAME:
+      OBJECTSTORE_PASSWORD:

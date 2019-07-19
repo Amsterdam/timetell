@@ -531,9 +531,9 @@ CREATE TABLE IF NOT EXISTS "{schemaname}"."{tablename}" (
 );
         """,
         # 'constraints': """
-# ALTER TABLE "{schemaname}"."{tablename}"
-#     ADD CONSTRAINT fk_opt_id FOREIGN KEY (opt_id) REFERENCES "{schemaname}"."SYS_OPT"(opt_id);
-#         """
+        # ALTER TABLE "{schemaname}"."{tablename}"
+        #     ADD CONSTRAINT fk_opt_id FOREIGN KEY (opt_id) REFERENCES "{schemaname}"."SYS_OPT"(opt_id);
+        #         """
     },
     SYS_ORG_NIV={
         'create': """
@@ -778,12 +778,17 @@ CREATE TABLE IF NOT EXISTS "{schemaname}"."{tablename}" (
         """,
         'constraints': """
 ALTER TABLE "{schemaname}"."{tablename}"
-    ADD CONSTRAINT fk_emp_id FOREIGN KEY (emp_id) REFERENCES "{schemaname}"."EMP"(emp_id),
-    ADD CONSTRAINT fk_act_id FOREIGN KEY (act_id) REFERENCES "{schemaname}"."ACT"(act_id),
-    ADD CONSTRAINT fk_prj_id FOREIGN KEY (prj_id) REFERENCES "{schemaname}"."PRJ"(prj_id),
+    ADD CONSTRAINT fk_emp_id FOREIGN KEY (emp_id)
+    REFERENCES "{schemaname}"."EMP"(emp_id),
+    ADD CONSTRAINT fk_act_id FOREIGN KEY (act_id)
+    REFERENCES "{schemaname}"."ACT"(act_id),
+    ADD CONSTRAINT fk_prj_id FOREIGN KEY (prj_id)
+    REFERENCES "{schemaname}"."PRJ"(prj_id),
     -- ADD CONSTRAINT fk_cust_id FOREIGN KEY (cust_id) REFERENCES "{schemaname}"."CUST"(cust_id),
-    ADD CONSTRAINT fk_plan_request_id FOREIGN KEY (plan_request_id) REFERENCES "{schemaname}"."PLAN_REQUEST"(plan_request_id),
-    ADD CONSTRAINT fk_plan_task_id FOREIGN KEY (plan_task_id) REFERENCES "{schemaname}"."PLAN_TASK"(plan_task_id);
+    ADD CONSTRAINT fk_plan_request_id FOREIGN KEY (plan_request_id)
+    REFERENCES "{schemaname}"."PLAN_REQUEST"(plan_request_id),
+    ADD CONSTRAINT fk_plan_task_id FOREIGN KEY (plan_task_id)
+    REFERENCES "{schemaname}"."PLAN_TASK"(plan_task_id);
         """
     },
     PLAN_REQUEST={
@@ -938,47 +943,58 @@ ALTER TABLE "{schemaname}"."{tablename}"
 
 _CUSTOMER_SETTINGS = dict(
     datapunt=dict(
-        tables=
-        (
-           'ACT', 'EMP', 'ORG',  'JOB', 'CUST', 'CUST_CONTACT', 'EMP_CONTRACT', 'EMP_ORG', 'PRJ', 'PRJ_LINK',
-           'SYS_PRJ_NIV', 'HRS', 'SYS_OPT_ITM', 'VW_LABEL_PRJ'
+        tables=(
+           'ACT', 'EMP', 'ORG',  'JOB', 'CUST', 'CUST_CONTACT', 'EMP_CONTRACT',
+           'EMP_ORG', 'PRJ', 'PRJ_LINK', 'SYS_PRJ_NIV', 'HRS', 'SYS_OPT_ITM',
+           'VW_LABEL_PRJ'
         ),
         sql=pkg_resources.resource_string(
             __name__, 'sql/datapunt.sql'
         ).decode('utf-8'),
-        tables_to_check=["v_timetell_projectenoverzicht", "v_timetell_projectenoverzicht_3",
+        tables_to_check=["v_timetell_projectenoverzicht",
+                         "v_timetell_projectenoverzicht_3",
                          "v_timetell_projectenoverzicht_4"]
     ),
     dienstverlening=dict(
         tables=(
-            'ACT', 'EMP', 'ORG', 'JOB', 'CUST', 'EMP_CONTRACT', 'EMP_ORG', 'EMP_SKILLS', 'PRJ', 'PRJ_LINK',
-            'SYS_PRJ_NIV', 'HRS', 'SYS_OPT', 'SYS_OPT_ITM', 'CALENDAR', 'PLAN_WEEK', 'PLAN_ALLOC', 'PLAN_REQUEST',
-            'PLAN_TASK', 'PLAN_PRJ'
+            'ACT', 'EMP', 'ORG', 'JOB', 'CUST', 'EMP_CONTRACT', 'EMP_ORG',
+            'EMP_SKILLS', 'PRJ', 'PRJ_LINK', 'SYS_PRJ_NIV', 'HRS', 'SYS_OPT',
+            'SYS_OPT_ITM', 'CALENDAR', 'PLAN_WEEK', 'PLAN_ALLOC',
+            'PLAN_REQUEST', 'PLAN_TASK', 'PLAN_PRJ'
         ),
         sql=pkg_resources.resource_string(
             __name__, 'sql/dienstverlening.sql'
         ).decode('utf-8'),
-        tables_to_check=["viw_tableau_datum", "viw_tableau_emp", "viw_tableau_hrs_union_all_normuren",
-                         "viw_tableau_normuren_per_werkdag", "viw_timetell_ivdi", "vw_tableau_act", "vw_tableau_cust",
-                         "vw_tableau_emp", "vw_tableau_hrs", "vw_tableau_hulp_week", "vw_tableau_org",
-                         "vw_tableau_prj", "vw_tableau_sys_prj_niv", "vw_timetell_ivdi",
-                         "viwx_01_emp_skill", "viwx_01_zondagen", "viwx_02_contract_per_week",
-                         "viwx_02_plan_alloc_verdeeld", "viwx_02_plan_request_verdeeld", "viwx_02_plan_task_verdeeld",
-                         "viwx_03_plan_union", "viwx_04_union_all", "viwx_timetell_ivdi"]
+        tables_to_check=["viw_tableau_datum", "viw_tableau_emp",
+                         "viw_tableau_hrs_union_all_normuren",
+                         "viw_tableau_normuren_per_werkdag",
+                         "viw_timetell_ivdi", "vw_tableau_act", "vw_tableau_cust",
+                         "vw_tableau_emp", "vw_tableau_hrs",
+                         "vw_tableau_hulp_week", "vw_tableau_org",
+                         "vw_tableau_prj", "vw_tableau_sys_prj_niv",
+                         "vw_timetell_ivdi", "viwx_01_emp_skill",
+                         "viwx_01_zondagen", "viwx_02_contract_per_week",
+                         "viwx_02_plan_alloc_verdeeld", "viwx_02_plan_request_verdeeld",
+                         "viwx_02_plan_task_verdeeld", "viwx_03_plan_union",
+                         "viwx_04_union_all", "viwx_timetell_ivdi"]
     )
 )
 
-_pool: asyncpg.pool.Pool = None
-_importschema: str = None
-_logger: logging.Logger = logging.getLogger(__name__)
+_pool = asyncpg.pool.Pool
+_pool = None
+
+_importschema = str
+_importschema = None
+
+_logger = logging.Logger
+_logger = logging.getLogger(__name__)
+
 _view_query = None
 
 
-async def initialize(
-        dsn: str,
-        max_conn_retry: int=5,
-        conn_retry_interval_secs: int=2
-):
+async def initialize(dsn: str,  # noqa: E999
+                     max_conn_retry: int=5,
+                     conn_retry_interval_secs: int=2):
     # language=rst
     """ Initialize the plugin.
 
@@ -1024,7 +1040,8 @@ async def initialize(
     try:
         # initialize schema
         await _pool.execute('CREATE SCHEMA "{}";'.format(_importschema))
-    except:
+    except (TimeoutError, CancelledError, InvalidStateError, IncompleteReadError, LimitOverrunError) as e:
+        _logger.error("Error creating schema:{}".format(e))
         await close()
         raise
     _logger.debug("Temp schema created: %s", _importschema)
@@ -1149,7 +1166,7 @@ async def populate(tablename: str, reader: T.AsyncGenerator) -> int:
             # insert the row
             try:
                 await stmt.fetch(*values)
-            except:
+            except ValueError:
                 _logger.critical("Error at %s: %s, %s", tablename, values, q)
                 raise
             numrows += 1

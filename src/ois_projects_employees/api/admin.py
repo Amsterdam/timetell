@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from web.api.models import Prj, Emp, PrjLink
+from .models import Prj, Emp, PrjLink
 
 admin.site.register(Prj)
 admin.site.register(Emp)
