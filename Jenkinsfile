@@ -35,8 +35,8 @@ node {
         stage("Build dockers") {
         tryStep "build", {
             def image = docker.build("repo.data.amsterdam.nl/datapunt/timetell:${env.BUILD_NUMBER}", "src")
-            api.push()
-            api.push("acceptance")
+            image.push()
+            image.push("acceptance")
 
         }
     }
