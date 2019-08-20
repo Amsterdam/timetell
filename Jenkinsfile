@@ -77,10 +77,10 @@ if (BRANCH == "master") {
     node {
         stage('Push production image') {
             tryStep "image tagging", {
-                def api = docker.image("repo.data.amsterdam.nl/datapunt/timetell:${env.BUILD_NUMBER}")
-                api.pull()
-                api.push("production")
-                api.push("latest")
+                def image = docker.image("repo.data.amsterdam.nl/datapunt/timetell:${env.BUILD_NUMBER}")
+                image.pull()
+                image.push("production")
+                image.push("latest")
             }
         }
     }
@@ -92,6 +92,31 @@ if (BRANCH == "master") {
                 parameters: [
                         [$class: 'StringParameterValue', name: 'INVENTORY', value: 'production'],
                         [$class: 'StringParameterValue', name: 'PLAYBOOK', value: 'deploy-timetell.yml'],
+                ]
+            }
+        }
+    }
+}
+
+if (BRANCH == "dev") {
+
+    node {
+        stage('Push acceptance image') {
+            tryStep "image tagging", {
+                def image = docker.image("repo.data.amsterdam.nl/datapunt/timetell:${env.BUILD_NUMBER}")
+                image.pull()
+                image.push("acceptance")
+            }
+        }
+    }
+
+    node {
+        stage("Deploy to ACC") {
+            tryStep "deployment", {
+                build job: 'Subtask_Openstack_Playbook',
+                parameters: [
+                    [$class: 'StringParameterValue', name: 'INVENTORY', value: 'acceptance'],
+                    [$class: 'StringParameterValue', name: 'PLAYBOOK', value: 'deploy-timetell.yml'],
                 ]
             }
         }
