@@ -74,7 +74,7 @@ ALTER TABLE "{schemaname}"."{tablename}"
         'create': """
 CREATE TABLE IF NOT EXISTS "{schemaname}"."{tablename}" (
     emp_id integer PRIMARY KEY,
-    nonactive boolean,
+    nonactive integer,
     empcat integer,
     name character varying(100),
     nationality character varying(50)
