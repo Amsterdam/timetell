@@ -840,7 +840,7 @@ _CUSTOMER_SETTINGS = dict(
         sql=pkg_resources.resource_string(
             __name__, 'datapunt.sql'
         ).decode('utf-8'),
-        tables_to_check=["v_timetell_projectenoverzicht", "v_timetell_projectenoverzicht_3",
+        tables_to_check=["v_timetell_projectenoverzicht_3",
                          "v_timetell_projectenoverzicht_4"]
     ),
     dienstverlening=dict(
