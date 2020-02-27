@@ -937,7 +937,7 @@ ALTER TABLE "{schemaname}"."{tablename}"
         'create': """
 CREATE TABLE IF NOT EXISTS "{schemaname}"."{tablename}" (
     plan_id integer,
-    copy boolean, 
+    copy integer, 
     type integer,
     dim_id integer,
     plan_cells_id integer PRIMARY KEY,
