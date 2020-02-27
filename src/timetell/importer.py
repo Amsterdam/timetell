@@ -5,6 +5,7 @@ import argparse
 import asyncio
 import collections.abc
 import csv
+from copy import deepcopy
 from datetime import datetime
 import logging
 import pathlib
@@ -830,8 +831,113 @@ CREATE TABLE IF NOT EXISTS "{schemaname}"."{tablename}" (
     }
 )
 
+_DATAPUNT_TABLESETTINGS = _TABLESETTINGS
+
+# Dienstverlening uses the same table definitions as de default _TABLESETTINGS that we use for datapunt.
+# However, for datapunt the EMP table (employees) has been minimized. Currently we are unable in
+# estimate impact for dienstverlening, so for now we let the dienstverlening import as it was.
+_DIENSTVERLENING_TABLESETTINGS = deepcopy(_TABLESETTINGS)
+
+_DIENSTVERLENING_TABLESETTINGS['EMP'] = {
+        'create': """
+CREATE TABLE IF NOT EXISTS "{schemaname}"."{tablename}" (
+    emp_id integer PRIMARY KEY,
+    nr character varying(20),
+    code character varying(20),
+    lastname character varying(50),
+    middlename character varying(10),
+    firstname character varying(30),
+    plastname character varying(50),
+    pmiddlename character varying(10),
+    displayname integer,
+    sex character varying(1),
+    initials character varying(10),
+    nonactive integer,
+    activeforclk integer,
+    birthdate date,
+    loginname character varying(50),
+    password character varying(150),
+    askpassword integer,
+    auth_id integer,
+    fromgroup integer,
+    togroup integer,
+    taskreg date,
+    empcat integer,
+    export integer,
+    address character varying(100),
+    zipcode character varying(10),
+    place character varying(50),
+    district character varying(50),
+    country character varying(50),
+    phone1 character varying(15),
+    phone2 character varying(15),
+    mobile1 character varying(15),
+    mobile2 character varying(15),
+    fax1 character varying(15),
+    fax2 character varying(15),
+    email1 character varying(50),
+    email2 character varying(50),
+    floor integer,
+    location character varying(20),
+    room character varying(10),
+    extension character varying(15),
+    bank character varying(25),
+    leasecar character varying(20),
+    traveldist double precision,
+    travelcosts double precision,
+    config_id integer,
+    refreshlocal date,
+    name character varying(100),
+    firstnames character varying(50),
+    leadtitle character varying(20),
+    trailtitle character varying(20),
+    addressno character varying(20),
+    birthplace character varying(75),
+    birthcountry character varying(75),
+    nationality character varying(50),
+    bsn character varying(20),
+    idnumber character varying(40),
+    mstatus integer,
+    mstatusdate date,
+    warninfo text,
+    medicalinfo text,
+    psex character varying(1),
+    pinitials character varying(10),
+    pfirstnames character varying(50),
+    pfirstname character varying(30),
+    pleadtitle character varying(20),
+    ptrailtitle character varying(20),
+    pbirthdate date,
+    pphone character varying(15),
+    startdate date,
+    enddate date,
+    jubdate date,
+    funcdate date,
+    assesdate date,
+    svcyears integer,
+    noldap integer,
+    pl_color integer,
+    idexpiredate date,
+    externkey character varying(50),
+    recipient character varying(100),
+    audit integer,
+    syncprof_id integer,
+    aduser integer,
+    changepassword integer,
+    dayhours double precision,
+    savedpassword character varying(150),
+    tag integer,
+    tagtype integer,
+    tagdate date
+);
+"""
+}
+
+ACTIVE_TABLESETTINGS = None
+
 _CUSTOMER_SETTINGS = dict(
     datapunt=dict(
+        table_settings=_DATAPUNT_TABLESETTINGS,
         tables=(
            'ACT', 'EMP', 'ORG',  'JOB', 'CUST', 'CUST_CONTACT', 'EMP_CONTRACT',
            'EMP_ORG', 'PRJ', 'PRJ_LINK', 'SYS_PRJ_NIV', 'HRS', 'SYS_OPT_ITM',
@@ -844,6 +950,7 @@ _CUSTOMER_SETTINGS = dict(
                          "v_timetell_projectenoverzicht_4"]
     ),
     dienstverlening=dict(
+        table_settings=_DIENSTVERLENING_TABLESETTINGS,
         tables=(
             'ACT', 'EMP', 'ORG', 'JOB', 'CUST', 'EMP_CONTRACT', 'EMP_ORG', 'EMP_SKILLS', 'PRJ', 'PRJ_LINK',
             'SYS_PRJ_NIV', 'HRS', 'SYS_OPT', 'SYS_OPT_ITM', 'CALENDAR', 'PLAN_WEEK', 'PLAN_ALLOC', 'PLAN_REQUEST',
@@ -1011,7 +1118,7 @@ async def populate(tablename: str, reader: T.AsyncGenerator) -> int:
     _logger.debug("Importing data into %s", tablename)
 
     # first create the table
-    settings = _TABLESETTINGS[tablename]
+    settings = ACTIVE_TABLESETTINGS[tablename]
     await _pool.execute(settings['create'].format(schemaname=_importschema, tablename=tablename))
     _logger.debug("Table created: %s", tablename)
 
@@ -1053,12 +1160,12 @@ async def populate(tablename: str, reader: T.AsyncGenerator) -> int:
 
 async def set_constraints(tablename: str):
     _logger.debug("Creating constraints on table %s", tablename)
-    if tablename not in _TABLESETTINGS:
+    if tablename not in ACTIVE_TABLESETTINGS:
         raise Exception("Don't know table {}".format(tablename))
-    if 'constraints' not in _TABLESETTINGS[tablename]:
+    if 'constraints' not in ACTIVE_TABLESETTINGS[tablename]:
         _logger.debug("No constraints defined for table {}".format(tablename))
     else:
-        constraints = _TABLESETTINGS[tablename]['constraints']
+        constraints = ACTIVE_TABLESETTINGS[tablename]['constraints']
         await _pool.execute(
             constraints.format(schemaname=_importschema, tablename=tablename))
         _logger.debug("Constraints created for table {}".format(tablename))
@@ -1127,6 +1234,10 @@ def cli():
     eventloop.run_until_complete(initialize(dsn))
     # get customer settings
     customer = _CUSTOMER_SETTINGS[args.customer]
+
+    global ACTIVE_TABLESETTINGS
+    ACTIVE_TABLESETTINGS = customer['table_settings']
+
     # run import
     try:
         # run import
