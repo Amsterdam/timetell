@@ -861,7 +861,6 @@ ALTER TABLE "{schemaname}"."{tablename}"
 _CUSTOMER_SETTINGS = dict(
     datapunt=dict(
         tables=(
-
            'ACT', 'EMP', 'ORG',  'JOB', 'CUST', 'CUST_CONTACT', 'EMP_CONTRACT',
            'EMP_ORG', 'PRJ', 'PRJ_LINK', 'SYS_PRJ_NIV', 'HRS', 'SYS_OPT_ITM',
            'VW_LABEL_PRJ'
@@ -869,8 +868,7 @@ _CUSTOMER_SETTINGS = dict(
         sql=pkg_resources.resource_string(
             __name__, 'sql/datapunt.sql'
         ).decode('utf-8'),
-        tables_to_check=["v_timetell_projectenoverzicht",
-                         "v_timetell_projectenoverzicht_3",
+        tables_to_check=["v_timetell_projectenoverzicht_3",
                          "v_timetell_projectenoverzicht_4"]
     ),
     dienstverlening=dict(
