@@ -6,7 +6,7 @@ set -x
 
 export DATABASE_NAME=timetell
 export DATABASE_USER=timetell
-export DATABASE_PASSWORD=timetell
+export DATABASE_PASSWORD=insecure
 export DATABASE_HOST=localhost
 export DATABASE_PORT=5444
 
