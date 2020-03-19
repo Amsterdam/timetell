@@ -946,7 +946,7 @@ _CUSTOMER_SETTINGS = dict(
         tables=(
            'ACT', 'EMP', 'ORG',  'JOB', 'CUST', 'CUST_CONTACT', 'EMP_CONTRACT',
            'EMP_ORG', 'PRJ', 'PRJ_LINK', 'SYS_PRJ_NIV', 'HRS', 'SYS_OPT_ITM',
-           'VW_LABEL_PRJ'
+           'VW_LABEL_PRJ', 'VW_PLAN'
         ),
         sql=pkg_resources.resource_string(
             __name__, 'sql/datapunt.sql'
