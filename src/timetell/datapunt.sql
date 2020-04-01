@@ -311,12 +311,10 @@ AS
 
 /*
 V5 Implementation from Hans Kleijn
-View: v_timetell_projectenoverzicht_5a met toevoeging van org_id en org_id_toen
-t.b.v. koppeling met VW_PLAN data 30-3-2020 Hans Kleijn
 */
 CREATE MATERIALIZED VIEW "{schemaname}".v_timetell_projectenoverzicht_5
 AS
- SELECT uren.hrs_date,
+SELECT uren.hrs_date,
     uren.hrs_hours,
     uren.hrs_internalrate,
     uren.hrs_rate,
@@ -324,10 +322,8 @@ AS
     uren.hrs_hoursinternalrate,
     uren.hrs_hours_status,
     project.cust_name,
-    uren.org_id,
-	uren.org_name,
-    uren.org_id_toen,
-	uren.org_name_toen,
+    uren.org_name,
+    uren.org_name_toen,
     uren.emp_empcat,
     uren.emp_name,
     uren."Medew. Verantw.",
@@ -454,10 +450,8 @@ AS
             h.hoursrate AS hrs_hoursrate,
             h.hoursinternalrate AS hrs_hoursinternalrate,
             h.status AS hrs_hours_status,
-			org2.org_id AS org_id_toen,
             org2.name AS org_name_toen,
             emp.name AS emp_name,
-			vafd.org_id as org_id,
             vafd.name AS org_name,
             emp.empcat AS emp_empcat,
             vafd.name::text AS "Medew. Verantw.",
@@ -467,23 +461,27 @@ AS
              JOIN ( SELECT "ORG".org_id,
                     "ORG".name
                    FROM "{schemaname}"."ORG") org2 ON h.org_id = org2.org_id
-                   JOIN ( SELECT DISTINCT teo.emp_id, top.org_id, top.name
-                   		FROM ( SELECT "ORG".org_id,"ORG".name
-                           		FROM "{schemaname}"."ORG"
-                         	 	WHERE "ORG".todate = to_date('2999-12-31'::text, 'YYYY-MM-DD'::text) AND "ORG".parent_id IS NULL) top
-                     	JOIN ( SELECT "EMP_ORG".emp_id,"EMP_ORG".org_id
-                           	FROM "{schemaname}"."EMP_ORG") teo ON top.org_id = teo.org_id
-                 			 WHERE NOT (teo.emp_id IN ( SELECT xeo.emp_id
-                           								FROM "{schemaname}"."EMP_ORG" xeo
-                             							JOIN "{schemaname}"."ORG" xo ON xeo.org_id = xo.org_id AND xo.parent_id IS NOT NULL
-                          								WHERE xo.todate = to_date('2999-12-31'::text, 'YYYY-MM-DD'::text) AND xeo.type = 0))
+             JOIN ( SELECT DISTINCT teo.emp_id,
+                    top.org_id,
+                    top.name
+                   FROM ( SELECT "ORG".org_id,
+                            "ORG".name
+                           FROM "{schemaname}"."ORG"
+                          WHERE "ORG".todate = to_date('2999-12-31'::text, 'YYYY-MM-DD'::text) AND "ORG".parent_id IS NULL) top
+                     JOIN ( SELECT "EMP_ORG".emp_id,
+                            "EMP_ORG".org_id
+                           FROM "{schemaname}"."EMP_ORG") teo ON top.org_id = teo.org_id
+                  WHERE NOT (teo.emp_id IN ( SELECT xeo.emp_id
+                           FROM "{schemaname}"."EMP_ORG" xeo
+                             JOIN "{schemaname}"."ORG" xo ON xeo.org_id = xo.org_id AND xo.parent_id IS NOT NULL
+                          WHERE xo.todate = to_date('2999-12-31'::text, 'YYYY-MM-DD'::text) AND xeo.type = 0))
                 UNION
-                 SELECT eo.emp_id, o.org_id, o.name
+                 SELECT eo.emp_id,
+                    o.org_id,
+                    o.name
                    FROM "{schemaname}"."EMP_ORG" eo
                      JOIN "{schemaname}"."ORG" o ON eo.org_id = o.org_id AND o.parent_id IS NOT NULL
-                  	WHERE o.todate = to_date('2999-12-31'::text, 'YYYY-MM-DD'::text)
-				   	AND (eo.todate = to_date('2999-12-31'::text, 'YYYY-MM-DD'::text)
-						OR eo.todate = to_date('2099-12-31'::text, 'YYYY-MM-DD'::text)) AND eo.type = 0
+                  WHERE o.todate = to_date('2999-12-31'::text, 'YYYY-MM-DD'::text) AND (eo.todate = to_date('2999-12-31'::text, 'YYYY-MM-DD'::text) OR eo.todate = to_date('2099-12-31'::text, 'YYYY-MM-DD'::text)) AND eo.type = 0
                   GROUP BY eo.emp_id, o.org_id, o.name
                 UNION
                  SELECT eo.emp_id,
@@ -499,5 +497,4 @@ AS
                      JOIN "{schemaname}"."EMP_ORG" eo ON sel.emp_id = eo.emp_id AND eo.todate = sel.maxtodate
                      JOIN "{schemaname}"."ORG" o ON eo.org_id = o.org_id AND o.parent_id IS NOT NULL
                   WHERE eo.type = 0) vafd ON vafd.emp_id = h.emp_id
-             		JOIN "{schemaname}"."ACT" act ON h.act_id = act.act_id) uren ON project.prj_prj_id = uren.prj_id
-WITH DATA;
+             JOIN "{schemaname}"."ACT" act ON h.act_id = act.act_id) uren ON project.prj_prj_id = uren.prj_id;
