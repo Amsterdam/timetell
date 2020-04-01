@@ -311,12 +311,9 @@ AS
 
 /*
 V5 Implementation from Hans Kleijn
--- View: "{schemaname}".v_timetell_projectenoverzicht_5a met toevoeging van org_id en org_id_toen
--- t.b.v. koppeling met VW_PLAN data 30-3-2020 Hans Kleijn
- */
- ​
-DROP MATERIALIZED VIEW "{schemaname}".v_timetell_projectenoverzicht_5;
-​
+View: v_timetell_projectenoverzicht_5a met toevoeging van org_id en org_id_toen
+t.b.v. koppeling met VW_PLAN data 30-3-2020 Hans Kleijn
+*/
 CREATE MATERIALIZED VIEW "{schemaname}".v_timetell_projectenoverzicht_5
 AS
  SELECT uren.hrs_date,
