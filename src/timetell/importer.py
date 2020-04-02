@@ -948,7 +948,8 @@ _CUSTOMER_SETTINGS = dict(
         ).decode('utf-8'),
         tables_to_check=["v_timetell_projectenoverzicht_3",
                          "v_timetell_projectenoverzicht_4",
-                         "v_timetell_projectenoverzicht_5"]
+                         "v_timetell_projectenoverzicht_5",
+                         "v_timetell_projectenoverzicht_6"]
     ),
     dienstverlening=dict(
         table_settings=_DIENSTVERLENING_TABLESETTINGS,
