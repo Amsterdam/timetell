@@ -535,48 +535,6 @@ CREATE TABLE IF NOT EXISTS "{schemaname}"."{tablename}" (
         #     ADD CONSTRAINT fk_opt_id FOREIGN KEY (opt_id) REFERENCES "{schemaname}"."SYS_OPT"(opt_id);
         #         """
     },
-    SYS_ORG_NIV={
-        'create': """
-CREATE TABLE IF NOT EXISTS "{schemaname}"."{tablename}" (
-    org_id integer PRIMARY KEY,
-    parent_id integer,
-    fromdate date,
-    todate date,
-    name character varying(50),
-    nr character varying(20),
-    code character varying(20),
-    "group" integer,
-    account character varying(20),
-    inherit_id integer,
-    inherit integer,
-    address character varying(100),
-    zipcode character varying(10),
-    place character varying(50),
-    district character varying(50),
-    country character varying(50),
-    phone1 character varying(15),
-    phone2 character varying(15),
-    mobile1 character varying(15),
-    mobile2 character varying(15),
-    fax1 character varying(15),
-    fax2 character varying(15),
-    email1 character varying(50),
-    email2 character varying(50),
-    info text,
-    updatelocal timestamp,
-    org_path character varying(100),
-    pl_color integer,
-    externkey character varying(50),
-    tag integer,
-    tagtype integer,
-    tagdate date
-);
-""",
-        'constraints': """
-ALTER TABLE "{schemaname}"."{tablename}"
-    ADD CONSTRAINT fk_parent_id FOREIGN KEY (parent_id) REFERENCES "{schemaname}"."ORG"(org_id);
-        """
-    },
     VW_LABEL_PRJ={
         'create': """
 CREATE TABLE IF NOT EXISTS "{schemaname}"."{tablename}" (
