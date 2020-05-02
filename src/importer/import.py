@@ -939,6 +939,26 @@ ALTER TABLE "{schemaname}"."{tablename}"
     ADD CONSTRAINT fk_plan_task_id FOREIGN KEY (plan_task_id) REFERENCES "{schemaname}"."PLAN_TASK"(plan_task_id);
         """
     },
+    VW_PLAN={
+        'create': """
+CREATE TABLE IF NOT EXISTS "{schemaname}"."{tablename}" (
+    plan_id integer,
+    copy boolean, 
+    type integer,
+    dim_id integer,
+    plan_cells_id integer PRIMARY KEY,
+    act_id integer,
+    prj_id integer,
+    emp_id integer,
+    org_id integer,
+    fromdate date,
+    todate date,
+    status integer,
+    hours double precision,
+    costs double precision
+)
+        """
+    }
 )
 
 _CUSTOMER_SETTINGS = dict(
