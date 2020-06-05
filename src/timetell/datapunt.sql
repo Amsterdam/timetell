@@ -679,69 +679,84 @@ AS
 WITH DATA;
 
 CREATE OR REPLACE VIEW "{schemaname}".v_timetell_project_team_maand_ab_6
- AS
- WITH actuals AS (
-         SELECT sum(v_timetell_projectenoverzicht_6.hrs_hours) AS hours,
-            sum(v_timetell_projectenoverzicht_6.hrs_hoursrate) AS costs,
-            v_timetell_projectenoverzicht_6.prj_prj_id AS prj_id,
-            v_timetell_projectenoverzicht_6."Project Nummer" AS project_nummer,
-            v_timetell_projectenoverzicht_6.prj_name,
-	        v_timetell_projectenoverzicht_6.prj_niv1_name AS prj_niv1_name,
-            v_timetell_projectenoverzicht_6.org_id,
-            v_timetell_projectenoverzicht_6.org_name,
-	 		v_timetell_projectenoverzicht_6."Project Verantw." as project_verantw,
-	 	 	v_timetell_projectenoverzicht_6."Project Leader" as project_leader,
-	 	 	v_timetell_projectenoverzicht_6.cust_name as cust_name,
-	 	 	 	v_timetell_projectenoverzicht_6.act_name as act_name,
-            date_part('year'::text, v_timetell_projectenoverzicht_6.hrs_date) AS jaar,
-            date_part('month'::text, v_timetell_projectenoverzicht_6.hrs_date) AS maand,
-            date_trunc('month'::text, v_timetell_projectenoverzicht_6.hrs_date::timestamp with time zone)::date AS eerstedagvandemaand
-           FROM "{schemaname}".v_timetell_projectenoverzicht_6
-          WHERE v_timetell_projectenoverzicht_6.hrs_date IS NOT NULL AND v_timetell_projectenoverzicht_6.fromdate >= '2020-01-01'::date AND v_timetell_projectenoverzicht_6.hrs_hours_status <> 0
-          GROUP BY v_timetell_projectenoverzicht_6.prj_prj_id,
-	 				v_timetell_projectenoverzicht_6."Project Nummer",
-	 				v_timetell_projectenoverzicht_6.prj_name,
-	 				v_timetell_projectenoverzicht_6.prj_niv1_name,
-	 				v_timetell_projectenoverzicht_6.org_id,
-	 				v_timetell_projectenoverzicht_6.org_name,
-	 	 		    v_timetell_projectenoverzicht_6."Project Verantw." ,
-	 	 			v_timetell_projectenoverzicht_6."Project Leader",
-	 	 	 		v_timetell_projectenoverzicht_6.cust_name ,
-	 	 	 	 	v_timetell_projectenoverzicht_6.act_name ,
-	 	 			(date_part('year'::text, v_timetell_projectenoverzicht_6.hrs_date)),
-	 				(date_part('month'::text, v_timetell_projectenoverzicht_6.hrs_date)),
-	 				(date_trunc('month'::text, v_timetell_projectenoverzicht_6.hrs_date::timestamp with time zone)::date)
- 				),
-	budget AS (
-         SELECT "VW_PLAN".prj_id,
-            "VW_PLAN".org_id,
-            date_part('year'::text, "VW_PLAN".fromdate) AS jaar,
-            sum("VW_PLAN".costs) AS budget
-           FROM "{schemaname}"."VW_PLAN"
-          WHERE "VW_PLAN".fromdate >= '2020-01-01'::date AND "VW_PLAN".prj_id IS NOT NULL
-          GROUP BY "VW_PLAN".prj_id, "VW_PLAN".org_id, (date_part('year'::text, "VW_PLAN".fromdate))
-        )
- SELECT a.prj_id,
+AS
+WITH actuals AS (
+    SELECT
+        sum(v_timetell_projectenoverzicht_6.hrs_hours) AS hours,
+        sum(v_timetell_projectenoverzicht_6.hrs_hoursrate) AS costs,
+        v_timetell_projectenoverzicht_6.prj_prj_id AS prj_id,
+        v_timetell_projectenoverzicht_6."Project Nummer" AS project_nummer,
+        v_timetell_projectenoverzicht_6.prj_name,
+        v_timetell_projectenoverzicht_6.prj_niv1_name AS prj_niv1_name,
+        v_timetell_projectenoverzicht_6.org_id,
+        v_timetell_projectenoverzicht_6.org_name,
+        v_timetell_projectenoverzicht_6."Project Verantw." as project_verantw,
+        v_timetell_projectenoverzicht_6."Project Leader" as project_leader,
+        v_timetell_projectenoverzicht_6.cust_name as cust_name,
+        v_timetell_projectenoverzicht_6.act_name as act_name,
+        date_part('year'::text, v_timetell_projectenoverzicht_6.hrs_date) AS jaar,
+        date_part('month'::text, v_timetell_projectenoverzicht_6.hrs_date) AS maand,
+        date_trunc('month'::text, v_timetell_projectenoverzicht_6.hrs_date::timestamp with time zone)::date AS eerstedagvandemaand
+    FROM
+        "{schemaname}".v_timetell_projectenoverzicht_6
+    WHERE
+        v_timetell_projectenoverzicht_6.hrs_date IS NOT NULL
+        AND v_timetell_projectenoverzicht_6.fromdate >= '2020-01-01'::date
+        AND v_timetell_projectenoverzicht_6.hrs_hours_status <> 0
+    GROUP BY
+        v_timetell_projectenoverzicht_6.prj_prj_id,
+        v_timetell_projectenoverzicht_6."Project Nummer",
+        v_timetell_projectenoverzicht_6.prj_name,
+        v_timetell_projectenoverzicht_6.prj_niv1_name,
+        v_timetell_projectenoverzicht_6.org_id,
+        v_timetell_projectenoverzicht_6.org_name,
+        v_timetell_projectenoverzicht_6."Project Verantw." ,
+        v_timetell_projectenoverzicht_6."Project Leader",
+        v_timetell_projectenoverzicht_6.cust_name ,
+        v_timetell_projectenoverzicht_6.act_name ,
+        (date_part('year'::text, v_timetell_projectenoverzicht_6.hrs_date)),
+        (date_part('month'::text, v_timetell_projectenoverzicht_6.hrs_date)),
+        (date_trunc('month'::text, v_timetell_projectenoverzicht_6.hrs_date::timestamp with time zone)::date)
+),
+budget AS (
+    SELECT
+        "VW_PLAN".prj_id,
+        "VW_PLAN".org_id,
+        date_part('year'::text, "VW_PLAN".fromdate) AS jaar,
+        sum("VW_PLAN".costs) AS budget
+    FROM
+        "{schemaname}"."VW_PLAN"
+    WHERE
+        "VW_PLAN".fromdate >= '2020-01-01'::date
+        AND "VW_PLAN".prj_id IS NOT NULL
+    GROUP BY
+        "VW_PLAN".prj_id, "VW_PLAN".org_id, (date_part('year'::text, "VW_PLAN".fromdate))
+)
+
+SELECT
+    a.prj_id,
     a.project_nummer,
     a.prj_name,
-	    a.prj_niv1_name,
+    a.prj_niv1_name,
     a.org_id,
     a.org_name,
-	a.project_verantw,
-	a.project_leader,
-	a.cust_name,
-		a.act_name,
+    a.project_verantw,
+    a.project_leader,
+    a.cust_name,
+    a.act_name,
     a.jaar,
     a.maand,
     a.eerstedagvandemaand,
     COALESCE(a.hours, 0::double precision) AS hours,
     COALESCE(a.costs, 0::double precision) AS costs,
     COALESCE(b.budget, 0::numeric) AS budget
-   FROM actuals a
-     FULL OUTER JOIN budget b ON a.prj_id = b.prj_id AND a.org_id = b.org_id AND b.jaar = a.jaar
-  ORDER BY a.project_nummer, a.prj_name, a.jaar, a.maand;
-
-ALTER TABLE "{schemaname}".v_timetell_project_team_maand_ab_6
-    OWNER TO postgres;
-
-GRANT ALL ON TABLE "{schemaname}".v_timetell_project_team_maand_ab_6 TO postgres;
+FROM
+    actuals a
+FULL OUTER JOIN
+    budget b
+    ON
+        a.prj_id = b.prj_id
+        AND a.org_id = b.org_id
+        AND b.jaar = a.jaar
+ORDER BY
+    a.project_nummer, a.prj_name, a.jaar, a.maand;
