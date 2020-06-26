@@ -713,7 +713,8 @@ FROM (
             "VW_PLAN".org_id,
             date_part('year'::text, "VW_PLAN".fromdate) AS jaar,
             sum("VW_PLAN".costs) AS budget
-        FROM "{schemaname}"."VW_PLAN"
+        FROM
+            "{schemaname}"."VW_PLAN"
         WHERE
             "VW_PLAN".fromdate >= '2019-01-01'::date AND
             "VW_PLAN".prj_id IS NOT NULL AND
@@ -746,7 +747,8 @@ FROM (
                 v_timetell_projectenoverzicht_6.cust_name,
                 v_timetell_projectenoverzicht_6.act_name,
                 date_part('year'::text, v_timetell_projectenoverzicht_6.hrs_date) AS jaar
-            FROM "{schemaname}".v_timetell_projectenoverzicht_6
+            FROM
+                "{schemaname}".v_timetell_projectenoverzicht_6
             WHERE
                 v_timetell_projectenoverzicht_6."Project Nummer" IS NOT NULL AND
                 v_timetell_projectenoverzicht_6.hrs_date IS NOT NULL
@@ -765,6 +767,7 @@ FROM (
             d.prj_id,
             d.jaar
     ),
+
     budget_maand AS (
         WITH budget AS (
             SELECT
@@ -772,7 +775,8 @@ FROM (
                 "VW_PLAN".org_id,
                 date_part('year'::text, "VW_PLAN".fromdate) AS jaar,
                 sum("VW_PLAN".costs) AS budget
-            FROM "{schemaname}"."VW_PLAN"
+            FROM
+                "{schemaname}"."VW_PLAN"
             WHERE
                 "VW_PLAN".fromdate >= '2019-01-01'::date AND
                 "VW_PLAN".prj_id IS NOT NULL
@@ -787,9 +791,11 @@ FROM (
             tijdreeks.jaar,
             tijdreeks.maand,
             budget.budget
-        FROM budget
-        LEFT JOIN tijdreeks ON
-            budget.jaar = tijdreeks.jaar
+        FROM
+            budget
+        LEFT JOIN
+            tijdreeks ON
+                budget.jaar = tijdreeks.jaar
         ORDER BY
             budget.prj_id,
             budget.org_id,
@@ -814,10 +820,10 @@ FROM (
             date_part('year'::text, v_timetell_projectenoverzicht_6.hrs_date) AS jaar,
             date_part('month'::text, v_timetell_projectenoverzicht_6.hrs_date) AS maand,
             date_trunc('month'::text, v_timetell_projectenoverzicht_6.hrs_date::timestamp with time zone)::date AS eerstedagvandemaand
-        FROM "{schemaname}".v_timetell_projectenoverzicht_6
+        FROM
+            "{schemaname}".v_timetell_projectenoverzicht_6
         WHERE
             v_timetell_projectenoverzicht_6.hrs_date IS NOT NULL AND
-            v_timetell_projectenoverzicht_6.fromdate >= '2019-01-01'::date AND
             v_timetell_projectenoverzicht_6.hrs_hours_status <> 0
         GROUP BY
             v_timetell_projectenoverzicht_6.prj_prj_id,
@@ -834,6 +840,7 @@ FROM (
             (date_part('month'::text, v_timetell_projectenoverzicht_6.hrs_date)),
             (date_trunc('month'::text, v_timetell_projectenoverzicht_6.hrs_date::timestamp with time zone)::date)
     )
+
     SELECT
         budget.prj_id,
         pj.project_nummer,
@@ -851,7 +858,8 @@ FROM (
         0::double precision AS hours,
         0::double precision AS costs,
         budget.budget
-    FROM budget
+    FROM
+        budget
     LEFT JOIN tijdreeks ON
         budget.jaar = tijdreeks.jaar
     LEFT JOIN project_jaar pj ON
@@ -859,7 +867,9 @@ FROM (
         budget.jaar = pj.jaar
     JOIN "{schemaname}"."ORG" o ON
         budget.org_id = o.org_id
+
     UNION
+
     SELECT
         a.prj_id,
         a.project_nummer,
@@ -877,7 +887,8 @@ FROM (
         COALESCE(a.hours, 0::double precision) AS hours,
         COALESCE(a.costs, 0::double precision) AS costs,
         COALESCE(bm.budget, 0::numeric) AS budget
-    FROM actuals a
+    FROM
+        actuals a
     LEFT JOIN budget_maand bm ON
         a.prj_id = bm.prj_id AND
         a.org_id = bm.org_id AND
@@ -899,6 +910,6 @@ GROUP BY
     c.maand,
     c.eerstedagvandemaand
 ORDER BY
-     c.project_nummer,
-     c.eerstedagvandemaand,
-     c.org_id;
+    c.project_nummer,
+    c.eerstedagvandemaand,
+    c.org_id;
