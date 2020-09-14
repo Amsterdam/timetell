@@ -920,7 +920,6 @@ ORDER BY
 DROP MATERIALIZED VIEW "{schemaname}".v_timetell_projectenoverzicht_7;
 
 CREATE MATERIALIZED VIEW "{schemaname}".v_timetell_projectenoverzicht_7
-TABLESPACE pg_default
 AS
  WITH w_project_adviseur AS (
          SELECT "SYS_OPT_ITM".item_id,
