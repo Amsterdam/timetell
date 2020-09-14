@@ -950,6 +950,7 @@ _CUSTOMER_SETTINGS = dict(
                          "v_timetell_projectenoverzicht_4",
                          "v_timetell_projectenoverzicht_5",
                          "v_timetell_projectenoverzicht_6",
+                         "v_timetell_projectenoverzicht_7",
                          "v_timetell_project_team_maand_ab_6"]
     ),
     dienstverlening=dict(
