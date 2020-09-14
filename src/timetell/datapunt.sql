@@ -1134,8 +1134,3 @@ AS
                   WHERE eo.type = 0) vafd ON vafd.emp_id = h.emp_id
              JOIN "{schemaname}"."ACT" act ON h.act_id = act.act_id) uren ON project.prj_prj_id = uren.prj_id
 WITH DATA;
-
-ALTER TABLE "{schemaname}".v_timetell_projectenoverzicht_7
-    OWNER TO postgres;
-
-GRANT ALL ON TABLE "{schemaname}".v_timetell_projectenoverzicht_7 TO postgres;
