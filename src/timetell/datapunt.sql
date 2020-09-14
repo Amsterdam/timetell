@@ -913,3 +913,229 @@ ORDER BY
     c.project_nummer,
     c.eerstedagvandemaand,
     c.org_id;
+
+
+-- View: "{schemaname}".v_timetell_projectenoverzicht_7
+
+DROP MATERIALIZED VIEW "{schemaname}".v_timetell_projectenoverzicht_7;
+
+CREATE MATERIALIZED VIEW "{schemaname}".v_timetell_projectenoverzicht_7
+TABLESPACE pg_default
+AS
+ WITH w_project_adviseur AS (
+         SELECT "SYS_OPT_ITM".item_id,
+            "SYS_OPT_ITM".item
+           FROM "{schemaname}"."SYS_OPT_ITM"
+          WHERE "SYS_OPT_ITM".opt_id = 32
+        ), w_basis_team_naam AS (
+         SELECT lp.dim_id AS prj_id,
+            max(soi.item::text) AS basis_team_name
+           FROM "{schemaname}"."VW_LABEL_PRJ" lp
+             LEFT JOIN "{schemaname}"."SYS_OPT_ITM" soi ON lp.item_id = soi.item_id
+          WHERE to_char(lp.todate::timestamp with time zone, 'YYYYMMDD'::text) = '29991231'::text
+          GROUP BY lp.dim_id),
+	w_laatste_projectleider AS (
+			WITH a as (SELECT prjpl.prj_id,
+                      prjpl.emp_id,
+                      emp.name AS prjl_name
+                     FROM "{schemaname}"."PRJ_LINK" prjpl
+                     LEFT JOIN "{schemaname}"."EMP" emp ON emp.emp_id = prjpl.emp_id
+                      WHERE prjpl.prjleader = 1 ),
+				prj_pl as (select prj_id, count(*) as aantal from a group by prj_id ),
+				b AS ( SELECT h.prj_id,
+                        a.emp_id,
+                        max(h.date) AS max
+                        FROM a JOIN prj_pl pl2 on a.prj_id=pl2.prj_id
+				        LEFT JOIN "{schemaname}"."HRS" h on a.prj_id=h.prj_id and a.emp_id=h.emp_id
+					    where pl2.aantal>1
+                       GROUP BY h.prj_id, a.emp_id),
+			    c AS (SELECT DISTINCT ON (b.prj_id) b.prj_id, b.emp_id FROM b
+                    ORDER BY b.prj_id, b.emp_id )
+         SELECT a.prj_id, a.emp_id, a.prjl_name
+           FROM a  JOIN c ON a.prj_id = c.prj_id AND a.emp_id = c.emp_id
+			 UNION
+			SELECT a.prj_id,a.emp_id, a.prjl_name
+           FROM a JOIN prj_pl ON a.prj_id = prj_pl.prj_id where prj_pl.aantal=1
+        )
+
+ SELECT uren.hrs_date,
+    uren.hrs_hours,
+    uren.hrs_internalrate,
+    uren.hrs_rate,
+    uren.hrs_hoursrate,
+    uren.hrs_hoursinternalrate,
+    uren.hrs_hours_status,
+    project.cust_name,
+    uren.org_id,
+    uren.org_name,
+    uren.org_id_toen,
+    uren.org_name_toen,
+    uren.emp_empcat,
+    uren.emp_name,
+    uren."Medew. Verantw.",
+    uren.act_name,
+    project.prj_niv,
+    project.prj_niv_name,
+    project.prj_niv0_name,
+    project.prj_niv1_name,
+    project.prj_niv2_name,
+    project."Project Verantw.",
+    project."Project Leader",
+    project."Project Adviseur",
+    project.prj_niv_id,
+    project.prj_niv0_id,
+    project.prj_niv1_id,
+    project.prj_niv2_id,
+    project.prj_prj_id,
+    project.prj_parent_id,
+    project.fromdate,
+    project.todate,
+    project.prj_name,
+    project.calc_hours,
+    project.calc_costs,
+    project."Project Nummer"
+   FROM ( SELECT 0 AS prj_niv,
+            a0.name AS prj_niv_name,
+            a0.name AS prj_niv0_name,
+            NULL::text AS prj_niv1_name,
+            NULL::character varying AS prj_niv2_name,
+            NULL::character varying(50) AS "Project Verantw.",
+            NULL::character varying AS "Project Leader",
+            NULL::character varying AS "Project Adviseur",
+            NULL::character varying AS cust_name,
+            a0.prj_id AS prj_niv_id,
+            a0.prj_id AS prj_niv0_id,
+            NULL::integer AS prj_niv1_id,
+            NULL::integer AS prj_niv2_id,
+            a0.prj_id AS prj_prj_id,
+            NULL::integer AS prj_parent_id,
+            a0.fromdate,
+            a0.todate,
+            a0.name AS prj_name,
+            a0.calc_hours,
+            a0.calc_costs,
+            a0.nr AS "Project Nummer"
+           FROM "{schemaname}"."PRJ" a0
+          WHERE a0.parent_id IS NULL
+        UNION
+         SELECT 1 AS prj_niv,
+            b1.name AS prj_niv_name,
+            a1.name AS prj_niv0_name,
+            (((b1.nr::text || ' - '::text) || b1.name::text))::character varying(50) AS prj_niv1_name,
+            NULL::text AS prj_niv2_name,
+            btn1.basis_team_name::character varying(50) AS "Project Verantw.",
+            prjpl.prjl_name AS "Project Leader",
+            pa1.item AS "Project Adviseur",
+            cust1.name AS cust_name,
+            b1.prj_id AS prj_niv_id,
+            a1.prj_id AS prj_niv0_id,
+            b1.prj_id AS prj_niv1_id,
+            NULL::integer AS prj_niv2_id,
+            b1.prj_id AS prj_prj_id,
+            b1.parent_id AS prj_parent_id,
+            b1.fromdate,
+            b1.todate,
+            b1.name AS prj_name,
+            b1.calc_hours,
+            b1.calc_costs,
+            b1.nr AS "Project Nummer"
+           FROM "{schemaname}"."PRJ" a1
+             LEFT JOIN "{schemaname}"."PRJ" b1 ON a1.prj_id = b1.parent_id AND a1.parent_id IS NULL
+             LEFT JOIN w_laatste_projectleider prjpl ON b1.prj_id = prjpl.prj_id
+             LEFT JOIN "{schemaname}"."EMP" e1 ON e1.emp_id = prjpl.emp_id
+             LEFT JOIN w_basis_team_naam btn1 ON btn1.prj_id = b1.prj_id
+             LEFT JOIN w_project_adviseur pa1 ON pa1.item_id = a1.prjcat
+             LEFT JOIN "{schemaname}"."CUST" cust1 ON b1.cust_id = cust1.cust_id
+        UNION
+         SELECT 2 AS prj_niv,
+            c2.name AS prj_niv_name,
+            a2.name AS " prj_niv0_name",
+            (b2.nr::text || ' - '::text) || b2.name::text AS prj_niv1_name,
+            (c2.nr::text || ' - '::text) || c2.name::text AS prj_niv2_name,
+            btn2.basis_team_name::character varying(50) AS "Project Verantw.",
+            prjpl2.prjl_name AS "Project Leader",
+            pa2.item AS "Project Adviseur",
+            cust2.name AS cust_name,
+            c2.prj_id AS prj_niv_id,
+            a2.prj_id AS prj_niv0_id,
+            b2.prj_id AS prj_niv1_id,
+            c2.prj_id AS prj_niv2_id,
+            c2.prj_id AS prj_prj_id,
+            c2.parent_id AS prj_parent_id,
+            c2.fromdate,
+            c2.todate,
+            c2.name AS prj_name,
+            c2.calc_hours,
+            c2.calc_costs,
+            c2.nr AS "Project Nummer"
+           FROM "{schemaname}"."PRJ" a2
+             JOIN "{schemaname}"."PRJ" b2 ON a2.prj_id = b2.parent_id AND a2.parent_id IS NULL
+             JOIN "{schemaname}"."PRJ" c2 ON b2.prj_id = c2.parent_id
+             LEFT JOIN w_laatste_projectleider prjpl2 ON b2.prj_id = prjpl2.prj_id
+             LEFT JOIN w_basis_team_naam btn2 ON btn2.prj_id = b2.prj_id
+             LEFT JOIN w_project_adviseur pa2 ON pa2.item_id = a2.prjcat
+             LEFT JOIN "{schemaname}"."CUST" cust2 ON c2.cust_id = cust2.cust_id) project
+     LEFT JOIN ( SELECT h.prj_id,
+            h.date AS hrs_date,
+            h.hours AS hrs_hours,
+            h.internalrate AS hrs_internalrate,
+            h.rate AS hrs_rate,
+            h.hoursrate AS hrs_hoursrate,
+            h.hoursinternalrate AS hrs_hoursinternalrate,
+            h.status AS hrs_hours_status,
+            org2.org_id AS org_id_toen,
+            org2.name AS org_name_toen,
+            emp.name AS emp_name,
+            vafd.org_id,
+            vafd.name AS org_name,
+            emp.empcat AS emp_empcat,
+            vafd.name::text AS "Medew. Verantw.",
+            act.name AS act_name
+           FROM "{schemaname}"."HRS" h
+             JOIN "{schemaname}"."EMP" emp ON h.emp_id = emp.emp_id
+             JOIN ( SELECT "ORG".org_id,
+                    "ORG".name
+                   FROM "{schemaname}"."ORG") org2 ON h.org_id = org2.org_id
+             JOIN ( SELECT DISTINCT teo.emp_id,
+                    top.org_id,
+                    top.name
+                   FROM ( SELECT "ORG".org_id,
+                            "ORG".name
+                           FROM "{schemaname}"."ORG"
+                          WHERE "ORG".todate = to_date('2999-12-31'::text, 'YYYY-MM-DD'::text) AND "ORG".parent_id IS NULL) top
+                     JOIN ( SELECT "EMP_ORG".emp_id,
+                            "EMP_ORG".org_id
+                           FROM "{schemaname}"."EMP_ORG") teo ON top.org_id = teo.org_id
+                  WHERE NOT (teo.emp_id IN ( SELECT xeo.emp_id
+                           FROM "{schemaname}"."EMP_ORG" xeo
+                             JOIN "{schemaname}"."ORG" xo ON xeo.org_id = xo.org_id AND xo.parent_id IS NOT NULL
+                          WHERE xo.todate = to_date('2999-12-31'::text, 'YYYY-MM-DD'::text) AND xeo.type = 0))
+                UNION
+                 SELECT eo.emp_id,
+                    o.org_id,
+                    o.name
+                   FROM "{schemaname}"."EMP_ORG" eo
+                     JOIN "{schemaname}"."ORG" o ON eo.org_id = o.org_id AND o.parent_id IS NOT NULL
+                  WHERE o.todate = to_date('2999-12-31'::text, 'YYYY-MM-DD'::text) AND (eo.todate = to_date('2999-12-31'::text, 'YYYY-MM-DD'::text) OR eo.todate = to_date('2099-12-31'::text, 'YYYY-MM-DD'::text)) AND eo.type = 0
+                  GROUP BY eo.emp_id, o.org_id, o.name
+                UNION
+                 SELECT eo.emp_id,
+                    o.org_id,
+                    o.name
+                   FROM ( SELECT laatste.emp_id,
+                            laatste.maxtodate
+                           FROM ( SELECT eo_1.emp_id,
+                                    max(eo_1.todate) AS maxtodate
+                                   FROM "{schemaname}"."EMP_ORG" eo_1
+                                  GROUP BY eo_1.emp_id) laatste
+                          WHERE NOT (laatste.maxtodate = to_date('2999-12-31'::text, 'YYYY-MM-DD'::text) OR laatste.maxtodate = to_date('2099-12-31'::text, 'YYYY-MM-DD'::text))) sel
+                     JOIN "{schemaname}"."EMP_ORG" eo ON sel.emp_id = eo.emp_id AND eo.todate = sel.maxtodate
+                     JOIN "{schemaname}"."ORG" o ON eo.org_id = o.org_id AND o.parent_id IS NOT NULL
+                  WHERE eo.type = 0) vafd ON vafd.emp_id = h.emp_id
+             JOIN "{schemaname}"."ACT" act ON h.act_id = act.act_id) uren ON project.prj_prj_id = uren.prj_id
+WITH DATA;
+
+ALTER TABLE "{schemaname}".v_timetell_projectenoverzicht_7
+    OWNER TO postgres;
+
+GRANT ALL ON TABLE "{schemaname}".v_timetell_projectenoverzicht_7 TO postgres;
