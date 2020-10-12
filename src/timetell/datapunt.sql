@@ -917,8 +917,6 @@ ORDER BY
 
 -- View: "{schemaname}".v_timetell_projectenoverzicht_7
 
-DROP MATERIALIZED VIEW "{schemaname}".v_timetell_projectenoverzicht_7;
-
 CREATE MATERIALIZED VIEW "{schemaname}".v_timetell_projectenoverzicht_7
 AS
 WITH w_project_adviseur AS (
