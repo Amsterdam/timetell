@@ -678,313 +678,6 @@ AS
              		JOIN "{schemaname}"."ACT" act ON h.act_id = act.act_id) uren ON project.prj_prj_id = uren.prj_id
 WITH DATA;
 
-CREATE OR REPLACE VIEW "{schemaname}".v_timetell_project_team_maand_ab_6 AS
-WITH w_laatste_projectleider AS (
-    WITH a AS (
-        SELECT
-            prjpl.prj_id,
-            prjpl.emp_id,
-            emp.name AS prjl_name
-        FROM "{schemaname}"."PRJ_LINK" prjpl
-        LEFT JOIN "{schemaname}"."EMP" emp ON emp.emp_id = prjpl.emp_id
-        WHERE prjpl.prjleader = 1
-    ),
-    prj_pl AS (
-        SELECT
-            a.prj_id,
-            count(*) AS aantal
-        FROM a
-        GROUP BY a.prj_id
-    ),
-    b AS (
-        SELECT
-            h.prj_id,
-            a.emp_id,
-            max(h.date) AS max
-        FROM a
-        JOIN prj_pl pl2 ON a.prj_id = pl2.prj_id
-        LEFT JOIN "{schemaname}"."HRS" h
-            ON a.prj_id = h.prj_id
-            AND a.emp_id = h.emp_id
-        WHERE pl2.aantal > 1
-        GROUP BY
-            h.prj_id,
-            a.emp_id
-    ),
-    c AS (
-        SELECT
-            DISTINCT ON (b.prj_id) b.prj_id,
-            b.emp_id
-        FROM b
-        ORDER BY
-            b.prj_id,
-            b.emp_id
-    )
-
-    SELECT
-        a.prj_id,
-        a.emp_id,
-        a.prjl_name
-    FROM a
-    JOIN c ON a.prj_id = c.prj_id
-    AND a.emp_id = c.emp_id
-
-    UNION
-
-    SELECT
-        a.prj_id,
-        a.emp_id,
-        a.prjl_name
-    FROM a
-    JOIN prj_pl ON a.prj_id = prj_pl.prj_id
-    WHERE prj_pl.aantal = 1
-),
-w_project_adviseur AS (
-    SELECT
-        a.prj_id,
-        b.item as project_adviseur
-    FROM "{schemaname}"."PRJ" a
-    JOIN "{schemaname}"."SYS_OPT_ITM" b ON b.item_id = a.prjcat
-    WHERE b.opt_id = 32
-)
-
-SELECT
-    c.prj_id,
-    c.project_nummer,
-    c.prj_name,
-    c.prj_niv1_name,
-    c.org_id,
-    c.org_name,
-    c.project_verantw,
-    c.project_leader,
-    c.project_adviseur,
-    c.cust_name,
-    c.act_name,
-    c.jaar,
-    c.maand,
-    c.eerstedagvandemaand,
-    sum(c.hours) AS hours,
-    sum(c.costs) AS costs,
-    max(c.budget) AS budget
-
-FROM (
-    WITH tijdreeks AS (
-        SELECT
-            date_part('year'::text, a.datum) AS jaar,
-            date_part('month'::text, a.datum) AS maand,
-            a.datum AS eerste_dag
-        FROM (
-            SELECT
-                generate_series('2019-01-01 00:00:00'::timestamp without time zone, '2027-12-31 23:59:00'::timestamp without time zone, '1 mon'::interval) AS datum
-        ) a
-    ),
-    budget AS (
-        SELECT
-            "VW_PLAN".prj_id,
-            "VW_PLAN".org_id,
-            date_part('year'::text, "VW_PLAN".fromdate) AS jaar,
-            sum("VW_PLAN".costs) AS budget
-        FROM "{schemaname}"."VW_PLAN"
-        WHERE
-            "VW_PLAN".fromdate >= '2019-01-01'::date
-            AND "VW_PLAN".prj_id IS NOT NULL
-            AND "VW_PLAN".org_id <> 0
-        GROUP BY
-            "VW_PLAN".prj_id,
-            "VW_PLAN".org_id,
-            (date_part('year'::text, "VW_PLAN".fromdate))
-    ),
-    project_jaar AS (
-        SELECT
-            d.prj_id,
-            d.jaar,
-            max(d.project_nummer::text) AS project_nummer,
-            max(d.prj_name::text) AS prj_name,
-            max(d.prj_niv1_name) AS prj_niv1_name,
-            max(d.project_leader::text) AS project_leader,
-            max(d.project_verantw::text) AS project_verantw,
-            max(d.project_adviseur::text) AS project_adviseur,
-            max(d.cust_name::text) AS cust_name,
-            max(d.act_name::text) AS act_name
-        FROM (
-            SELECT
-                v_timetell_projectenoverzicht_7.prj_prj_id AS prj_id,
-                v_timetell_projectenoverzicht_7."Project Nummer" AS project_nummer,
-                v_timetell_projectenoverzicht_7.prj_name,
-                v_timetell_projectenoverzicht_7.prj_niv1_name,
-                v_timetell_projectenoverzicht_7."Project Verantw." AS project_verantw,
-                v_timetell_projectenoverzicht_7."Project Leader" AS project_leader,
-                v_timetell_projectenoverzicht_7."Project Adviseur" AS project_adviseur,
-                v_timetell_projectenoverzicht_7.cust_name,
-                v_timetell_projectenoverzicht_7.act_name,
-                date_part('year'::text, v_timetell_projectenoverzicht_7.hrs_date) AS jaar
-            FROM "{schemaname}".v_timetell_projectenoverzicht_7
-            WHERE
-                v_timetell_projectenoverzicht_7."Project Nummer" IS NOT NULL
-                AND v_timetell_projectenoverzicht_7.hrs_date IS NOT NULL
-            GROUP BY
-                v_timetell_projectenoverzicht_7.prj_prj_id,
-                v_timetell_projectenoverzicht_7."Project Nummer",
-                v_timetell_projectenoverzicht_7.prj_name,
-                v_timetell_projectenoverzicht_7.prj_niv1_name,
-                v_timetell_projectenoverzicht_7."Project Verantw.",
-                v_timetell_projectenoverzicht_7."Project Leader",
-                v_timetell_projectenoverzicht_7."Project Adviseur",
-                v_timetell_projectenoverzicht_7.cust_name,
-                v_timetell_projectenoverzicht_7.act_name,
-                (date_part('year'::text, v_timetell_projectenoverzicht_7.hrs_date))
-        ) d
-        GROUP BY
-            d.prj_id,
-            d.jaar
-    ),
-    budget_maand AS (
-        WITH budget AS (
-            SELECT
-                b.prj_id,
-                b.org_id,
-                date_part('year'::text, b.fromdate) AS jaar,
-                sum(b.costs) AS budget
-            FROM "{schemaname}"."VW_PLAN" b
-            WHERE
-                b.fromdate >= '2019-01-01'::date
-                AND NOT(b.prj_id IS  NULL or b.prj_id<=0 )  -- geen budgetten die niet aan projecten zijn toegewezen
-            GROUP BY
-                b.prj_id,
-                b.org_id,
-                (date_part('year'::text, b.fromdate))
-        )
-
-        SELECT
-            budget.prj_id,
-            budget.org_id,
-            tijdreeks.jaar,
-            tijdreeks.maand,
-            budget.budget
-        FROM budget
-        LEFT JOIN tijdreeks ON budget.jaar = tijdreeks.jaar
-        ORDER BY
-            budget.prj_id,
-            budget.org_id,
-            budget.jaar,
-            tijdreeks.maand
-    ),
-    actuals AS (
-        SELECT
-            sum(v_timetell_projectenoverzicht_7.hrs_hours) AS hours,
-            sum(v_timetell_projectenoverzicht_7.hrs_hoursrate) AS costs,
-            v_timetell_projectenoverzicht_7.prj_prj_id AS prj_id,
-            v_timetell_projectenoverzicht_7."Project Nummer" AS project_nummer,
-            v_timetell_projectenoverzicht_7.prj_name,
-            v_timetell_projectenoverzicht_7.prj_niv1_name,
-            v_timetell_projectenoverzicht_7.org_id,
-            v_timetell_projectenoverzicht_7.org_name,
-            v_timetell_projectenoverzicht_7."Project Verantw." AS project_verantw,
-            v_timetell_projectenoverzicht_7."Project Leader" AS project_leader,
-            v_timetell_projectenoverzicht_7."Project Adviseur" AS project_adviseur,
-            v_timetell_projectenoverzicht_7.cust_name,
-            v_timetell_projectenoverzicht_7.act_name,
-            date_part('year'::text, v_timetell_projectenoverzicht_7.hrs_date) AS jaar,
-            date_part('month'::text, v_timetell_projectenoverzicht_7.hrs_date) AS maand,
-            date_trunc('month'::text, v_timetell_projectenoverzicht_7.hrs_date::timestamp with time zone)::date AS eerstedagvandemaand
-        FROM "{schemaname}".v_timetell_projectenoverzicht_7
-        WHERE
-            v_timetell_projectenoverzicht_7.hrs_date IS NOT NULL
-            AND v_timetell_projectenoverzicht_7.hrs_hours_status <> 0
-        GROUP BY
-            v_timetell_projectenoverzicht_7.prj_prj_id,
-            v_timetell_projectenoverzicht_7."Project Nummer",
-            v_timetell_projectenoverzicht_7.prj_name,
-            v_timetell_projectenoverzicht_7.prj_niv1_name,
-            v_timetell_projectenoverzicht_7.org_id,
-            v_timetell_projectenoverzicht_7.org_name,
-            v_timetell_projectenoverzicht_7."Project Verantw.",
-            v_timetell_projectenoverzicht_7."Project Leader",
-            v_timetell_projectenoverzicht_7."Project Adviseur",
-            v_timetell_projectenoverzicht_7.cust_name,
-            v_timetell_projectenoverzicht_7.act_name,
-            (date_part('year'::text, v_timetell_projectenoverzicht_7.hrs_date)),
-            (date_part('month'::text, v_timetell_projectenoverzicht_7.hrs_date)),
-            (date_trunc('month'::text, v_timetell_projectenoverzicht_7.hrs_date::timestamp with time zone)::date)
-    )
-    SELECT
-        budget.prj_id,
-        p.nr as project_nummer,
-        p.name as prj_name,
-        pj.prj_niv1_name,
-        budget.org_id,
-        o.name AS org_name,
-        pj.project_verantw,
-        pl.prjl_name as project_leader,
-        pa.project_adviseur,
-        c.name as cust_name,
-        act.name as act_name,
-        tijdreeks.jaar,
-        tijdreeks.maand,
-        tijdreeks.eerste_dag AS eerstedagvandemaand,
-        0::double precision AS hours,
-        0::double precision AS costs,
-        budget.budget
-    FROM budget
-    LEFT JOIN tijdreeks ON budget.jaar = tijdreeks.jaar
-    LEFT JOIN project_jaar pj ON pj.prj_id = budget.prj_id AND budget.jaar = pj.jaar
-    JOIN "{schemaname}"."ORG" o ON budget.org_id = o.org_id
-    JOIN "{schemaname}"."PRJ" p on p.prj_id=budget.prj_id
-    LEFT JOIN "{schemaname}"."CUST" c ON p.cust_id = c.cust_id
-    LEFT JOIN "{schemaname}"."ACT" act ON p.act_id = act.act_id
-    LEFT JOIN w_laatste_projectleider pl ON pl.prj_id=budget.prj_id
-    LEFT JOIN w_project_adviseur pa on pa.prj_id=budget.prj_id
-
-    UNION
-
-    SELECT
-        a.prj_id,
-        a.project_nummer,
-        a.prj_name,
-        a.prj_niv1_name,
-        a.org_id,
-        a.org_name,
-        a.project_verantw,
-        a.project_leader,
-        a.project_adviseur,
-        a.cust_name,
-        a.act_name,
-        a.jaar,
-        a.maand,
-        a.eerstedagvandemaand,
-        COALESCE(a.hours, 0::double precision) AS hours,
-        COALESCE(a.costs, 0::double precision) AS costs,
-        COALESCE(bm.budget, 0::numeric) AS budget
-    FROM actuals a
-    LEFT JOIN budget_maand bm
-        ON a.prj_id = bm.prj_id
-        AND a.org_id = bm.org_id
-        AND a.jaar = bm.jaar
-        AND a.maand = bm.maand
-) c
-
-GROUP BY
-    c.prj_id,
-    c.project_nummer,
-    c.prj_name,
-    c.prj_niv1_name,
-    c.org_id,
-    c.org_name,
-    c.project_verantw,
-    c.project_leader,
-    c.project_adviseur,
-    c.cust_name,
-    c.act_name,
-    c.jaar,
-    c.maand,
-    c.eerstedagvandemaand
-ORDER BY
-    c.prj_id,
-    c.eerstedagvandemaand,
-    c.org_id;
-
-
-
 -- View: "{schemaname}".v_timetell_projectenoverzicht_7
 
 CREATE MATERIALIZED VIEW "{schemaname}".v_timetell_projectenoverzicht_7
@@ -1340,3 +1033,310 @@ ORDER BY
     p.prj_name,
     p.jaar,
 p.maand;
+
+
+
+CREATE OR REPLACE VIEW "{schemaname}".v_timetell_project_team_maand_ab_6 AS
+WITH w_laatste_projectleider AS (
+    WITH a AS (
+        SELECT
+            prjpl.prj_id,
+            prjpl.emp_id,
+            emp.name AS prjl_name
+        FROM "{schemaname}"."PRJ_LINK" prjpl
+        LEFT JOIN "{schemaname}"."EMP" emp ON emp.emp_id = prjpl.emp_id
+        WHERE prjpl.prjleader = 1
+    ),
+    prj_pl AS (
+        SELECT
+            a.prj_id,
+            count(*) AS aantal
+        FROM a
+        GROUP BY a.prj_id
+    ),
+    b AS (
+        SELECT
+            h.prj_id,
+            a.emp_id,
+            max(h.date) AS max
+        FROM a
+        JOIN prj_pl pl2 ON a.prj_id = pl2.prj_id
+        LEFT JOIN "{schemaname}"."HRS" h
+            ON a.prj_id = h.prj_id
+            AND a.emp_id = h.emp_id
+        WHERE pl2.aantal > 1
+        GROUP BY
+            h.prj_id,
+            a.emp_id
+    ),
+    c AS (
+        SELECT
+            DISTINCT ON (b.prj_id) b.prj_id,
+            b.emp_id
+        FROM b
+        ORDER BY
+            b.prj_id,
+            b.emp_id
+    )
+
+    SELECT
+        a.prj_id,
+        a.emp_id,
+        a.prjl_name
+    FROM a
+    JOIN c ON a.prj_id = c.prj_id
+    AND a.emp_id = c.emp_id
+
+    UNION
+
+    SELECT
+        a.prj_id,
+        a.emp_id,
+        a.prjl_name
+    FROM a
+    JOIN prj_pl ON a.prj_id = prj_pl.prj_id
+    WHERE prj_pl.aantal = 1
+),
+w_project_adviseur AS (
+    SELECT
+        a.prj_id,
+        b.item as project_adviseur
+    FROM "{schemaname}"."PRJ" a
+    JOIN "{schemaname}"."SYS_OPT_ITM" b ON b.item_id = a.prjcat
+    WHERE b.opt_id = 32
+)
+
+SELECT
+    c.prj_id,
+    c.project_nummer,
+    c.prj_name,
+    c.prj_niv1_name,
+    c.org_id,
+    c.org_name,
+    c.project_verantw,
+    c.project_leader,
+    c.project_adviseur,
+    c.cust_name,
+    c.act_name,
+    c.jaar,
+    c.maand,
+    c.eerstedagvandemaand,
+    sum(c.hours) AS hours,
+    sum(c.costs) AS costs,
+    max(c.budget) AS budget
+
+FROM (
+    WITH tijdreeks AS (
+        SELECT
+            date_part('year'::text, a.datum) AS jaar,
+            date_part('month'::text, a.datum) AS maand,
+            a.datum AS eerste_dag
+        FROM (
+            SELECT
+                generate_series('2019-01-01 00:00:00'::timestamp without time zone, '2027-12-31 23:59:00'::timestamp without time zone, '1 mon'::interval) AS datum
+        ) a
+    ),
+    budget AS (
+        SELECT
+            "VW_PLAN".prj_id,
+            "VW_PLAN".org_id,
+            date_part('year'::text, "VW_PLAN".fromdate) AS jaar,
+            sum("VW_PLAN".costs) AS budget
+        FROM "{schemaname}"."VW_PLAN"
+        WHERE
+            "VW_PLAN".fromdate >= '2019-01-01'::date
+            AND "VW_PLAN".prj_id IS NOT NULL
+            AND "VW_PLAN".org_id <> 0
+        GROUP BY
+            "VW_PLAN".prj_id,
+            "VW_PLAN".org_id,
+            (date_part('year'::text, "VW_PLAN".fromdate))
+    ),
+    project_jaar AS (
+        SELECT
+            d.prj_id,
+            d.jaar,
+            max(d.project_nummer::text) AS project_nummer,
+            max(d.prj_name::text) AS prj_name,
+            max(d.prj_niv1_name) AS prj_niv1_name,
+            max(d.project_leader::text) AS project_leader,
+            max(d.project_verantw::text) AS project_verantw,
+            max(d.project_adviseur::text) AS project_adviseur,
+            max(d.cust_name::text) AS cust_name,
+            max(d.act_name::text) AS act_name
+        FROM (
+            SELECT
+                v_timetell_projectenoverzicht_7.prj_prj_id AS prj_id,
+                v_timetell_projectenoverzicht_7."Project Nummer" AS project_nummer,
+                v_timetell_projectenoverzicht_7.prj_name,
+                v_timetell_projectenoverzicht_7.prj_niv1_name,
+                v_timetell_projectenoverzicht_7."Project Verantw." AS project_verantw,
+                v_timetell_projectenoverzicht_7."Project Leader" AS project_leader,
+                v_timetell_projectenoverzicht_7."Project Adviseur" AS project_adviseur,
+                v_timetell_projectenoverzicht_7.cust_name,
+                v_timetell_projectenoverzicht_7.act_name,
+                date_part('year'::text, v_timetell_projectenoverzicht_7.hrs_date) AS jaar
+            FROM "{schemaname}".v_timetell_projectenoverzicht_7
+            WHERE
+                v_timetell_projectenoverzicht_7."Project Nummer" IS NOT NULL
+                AND v_timetell_projectenoverzicht_7.hrs_date IS NOT NULL
+            GROUP BY
+                v_timetell_projectenoverzicht_7.prj_prj_id,
+                v_timetell_projectenoverzicht_7."Project Nummer",
+                v_timetell_projectenoverzicht_7.prj_name,
+                v_timetell_projectenoverzicht_7.prj_niv1_name,
+                v_timetell_projectenoverzicht_7."Project Verantw.",
+                v_timetell_projectenoverzicht_7."Project Leader",
+                v_timetell_projectenoverzicht_7."Project Adviseur",
+                v_timetell_projectenoverzicht_7.cust_name,
+                v_timetell_projectenoverzicht_7.act_name,
+                (date_part('year'::text, v_timetell_projectenoverzicht_7.hrs_date))
+        ) d
+        GROUP BY
+            d.prj_id,
+            d.jaar
+    ),
+    budget_maand AS (
+        WITH budget AS (
+            SELECT
+                b.prj_id,
+                b.org_id,
+                date_part('year'::text, b.fromdate) AS jaar,
+                sum(b.costs) AS budget
+            FROM "{schemaname}"."VW_PLAN" b
+            WHERE
+                b.fromdate >= '2019-01-01'::date
+                AND NOT(b.prj_id IS  NULL or b.prj_id<=0 )  -- geen budgetten die niet aan projecten zijn toegewezen
+            GROUP BY
+                b.prj_id,
+                b.org_id,
+                (date_part('year'::text, b.fromdate))
+        )
+
+        SELECT
+            budget.prj_id,
+            budget.org_id,
+            tijdreeks.jaar,
+            tijdreeks.maand,
+            budget.budget
+        FROM budget
+        LEFT JOIN tijdreeks ON budget.jaar = tijdreeks.jaar
+        ORDER BY
+            budget.prj_id,
+            budget.org_id,
+            budget.jaar,
+            tijdreeks.maand
+    ),
+    actuals AS (
+        SELECT
+            sum(v_timetell_projectenoverzicht_7.hrs_hours) AS hours,
+            sum(v_timetell_projectenoverzicht_7.hrs_hoursrate) AS costs,
+            v_timetell_projectenoverzicht_7.prj_prj_id AS prj_id,
+            v_timetell_projectenoverzicht_7."Project Nummer" AS project_nummer,
+            v_timetell_projectenoverzicht_7.prj_name,
+            v_timetell_projectenoverzicht_7.prj_niv1_name,
+            v_timetell_projectenoverzicht_7.org_id,
+            v_timetell_projectenoverzicht_7.org_name,
+            v_timetell_projectenoverzicht_7."Project Verantw." AS project_verantw,
+            v_timetell_projectenoverzicht_7."Project Leader" AS project_leader,
+            v_timetell_projectenoverzicht_7."Project Adviseur" AS project_adviseur,
+            v_timetell_projectenoverzicht_7.cust_name,
+            v_timetell_projectenoverzicht_7.act_name,
+            date_part('year'::text, v_timetell_projectenoverzicht_7.hrs_date) AS jaar,
+            date_part('month'::text, v_timetell_projectenoverzicht_7.hrs_date) AS maand,
+            date_trunc('month'::text, v_timetell_projectenoverzicht_7.hrs_date::timestamp with time zone)::date AS eerstedagvandemaand
+        FROM "{schemaname}".v_timetell_projectenoverzicht_7
+        WHERE
+            v_timetell_projectenoverzicht_7.hrs_date IS NOT NULL
+            AND v_timetell_projectenoverzicht_7.hrs_hours_status <> 0
+        GROUP BY
+            v_timetell_projectenoverzicht_7.prj_prj_id,
+            v_timetell_projectenoverzicht_7."Project Nummer",
+            v_timetell_projectenoverzicht_7.prj_name,
+            v_timetell_projectenoverzicht_7.prj_niv1_name,
+            v_timetell_projectenoverzicht_7.org_id,
+            v_timetell_projectenoverzicht_7.org_name,
+            v_timetell_projectenoverzicht_7."Project Verantw.",
+            v_timetell_projectenoverzicht_7."Project Leader",
+            v_timetell_projectenoverzicht_7."Project Adviseur",
+            v_timetell_projectenoverzicht_7.cust_name,
+            v_timetell_projectenoverzicht_7.act_name,
+            (date_part('year'::text, v_timetell_projectenoverzicht_7.hrs_date)),
+            (date_part('month'::text, v_timetell_projectenoverzicht_7.hrs_date)),
+            (date_trunc('month'::text, v_timetell_projectenoverzicht_7.hrs_date::timestamp with time zone)::date)
+    )
+    SELECT
+        budget.prj_id,
+        p.nr as project_nummer,
+        p.name as prj_name,
+        pj.prj_niv1_name,
+        budget.org_id,
+        o.name AS org_name,
+        pj.project_verantw,
+        pl.prjl_name as project_leader,
+        pa.project_adviseur,
+        c.name as cust_name,
+        act.name as act_name,
+        tijdreeks.jaar,
+        tijdreeks.maand,
+        tijdreeks.eerste_dag AS eerstedagvandemaand,
+        0::double precision AS hours,
+        0::double precision AS costs,
+        budget.budget
+    FROM budget
+    LEFT JOIN tijdreeks ON budget.jaar = tijdreeks.jaar
+    LEFT JOIN project_jaar pj ON pj.prj_id = budget.prj_id AND budget.jaar = pj.jaar
+    JOIN "{schemaname}"."ORG" o ON budget.org_id = o.org_id
+    JOIN "{schemaname}"."PRJ" p on p.prj_id=budget.prj_id
+    LEFT JOIN "{schemaname}"."CUST" c ON p.cust_id = c.cust_id
+    LEFT JOIN "{schemaname}"."ACT" act ON p.act_id = act.act_id
+    LEFT JOIN w_laatste_projectleider pl ON pl.prj_id=budget.prj_id
+    LEFT JOIN w_project_adviseur pa on pa.prj_id=budget.prj_id
+
+    UNION
+
+    SELECT
+        a.prj_id,
+        a.project_nummer,
+        a.prj_name,
+        a.prj_niv1_name,
+        a.org_id,
+        a.org_name,
+        a.project_verantw,
+        a.project_leader,
+        a.project_adviseur,
+        a.cust_name,
+        a.act_name,
+        a.jaar,
+        a.maand,
+        a.eerstedagvandemaand,
+        COALESCE(a.hours, 0::double precision) AS hours,
+        COALESCE(a.costs, 0::double precision) AS costs,
+        COALESCE(bm.budget, 0::numeric) AS budget
+    FROM actuals a
+    LEFT JOIN budget_maand bm
+        ON a.prj_id = bm.prj_id
+        AND a.org_id = bm.org_id
+        AND a.jaar = bm.jaar
+        AND a.maand = bm.maand
+) c
+
+GROUP BY
+    c.prj_id,
+    c.project_nummer,
+    c.prj_name,
+    c.prj_niv1_name,
+    c.org_id,
+    c.org_name,
+    c.project_verantw,
+    c.project_leader,
+    c.project_adviseur,
+    c.cust_name,
+    c.act_name,
+    c.jaar,
+    c.maand,
+    c.eerstedagvandemaand
+ORDER BY
+    c.prj_id,
+    c.eerstedagvandemaand,
+    c.org_id;
