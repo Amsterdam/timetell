@@ -78,6 +78,8 @@ CREATE TABLE IF NOT EXISTS "{schemaname}"."{tablename}" (
     empcat integer,
     name character varying(100),
     nationality character varying(50)
+    warninfo text,
+    startdate date,
 );
 """
     },
