@@ -47,7 +47,7 @@ setup(
     # ┏━━━━━━━━━━━━━━┓
     # ┃ Requirements ┃
     # ┗━━━━━━━━━━━━━━┛
-    python_requires='~=3.6',
+    python_requires='~=3.9',
     setup_requires=[
         'pytest-runner'
     ],
