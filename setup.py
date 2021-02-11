@@ -47,14 +47,14 @@ setup(
     # ┏━━━━━━━━━━━━━━┓
     # ┃ Requirements ┃
     # ┗━━━━━━━━━━━━━━┛
-    python_requires='~=3.9',
+    python_requires='~=3.6',
     setup_requires=[
         'pytest-runner'
     ],
     install_requires=[
         'aiohttp',  # for downloading files from objectstore
         'asyncpg',  # async postgres driver
-        'uvloop',  # optional fast eventloop for asyncio
+        'uvloop<0.15.0',  # optional fast eventloop for asyncio
     ],
     extras_require={
         'test': [
