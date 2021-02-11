@@ -79,7 +79,7 @@ CREATE TABLE IF NOT EXISTS "{schemaname}"."{tablename}" (
     name character varying(100),
     nationality character varying(50),
     warninfo text,
-    startdate date,
+    startdate date
 );
 """
     },
