@@ -77,7 +77,8 @@ CREATE TABLE IF NOT EXISTS "{schemaname}"."{tablename}" (
     nonactive integer,
     empcat integer,
     name character varying(100),
-    nationality character varying(50)
+    nationality character varying(50),
+    startdate date
 );
 """
     },
