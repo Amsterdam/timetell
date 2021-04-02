@@ -954,7 +954,8 @@ _CUSTOMER_SETTINGS = dict(
                          "v_timetell_projectenoverzicht_7",
                          "v_timetell_project_team_maand_ab_6",
                          "v_timetell_projecten_ab_7",
-                         "v_timetell_project_team_maand_ab_7"]
+                         "v_timetell_project_team_maand_ab_7",
+                         "v_timetell_project_team_maand_ab_7_test"]
     ),
     dienstverlening=dict(
         table_settings=_DIENSTVERLENING_TABLESETTINGS,
