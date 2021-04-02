@@ -1771,7 +1771,7 @@ project_jaar AS (
             po.cust_name,
             po.act_name,
             date_part('year'::text, po.hrs_date) AS jaar
-        FROM v_timetell_projectenoverzicht_7 po
+        FROM "{schemaname}".v_timetell_projectenoverzicht_7 po
         WHERE po."Project Nummer" IS NOT NULL
         GROUP BY
             po.prj_prj_id,
