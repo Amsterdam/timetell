@@ -1766,3 +1766,8 @@ WITH emp_contracts AS (
 SELECT *
 FROM intern_extern_per_team_per_month
 WHERE contract_month <= date_trunc('month', NOW());
+
+
+
+
+SELECT 1 FROM "{schemaname}"."EMP";
