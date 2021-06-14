@@ -1697,7 +1697,7 @@ WITH emp_contracts AS (
 --Select statement shows per employee, per month their contract type, team etc.
 SELECT *
 FROM emp_contracts_per_month
-WHERE contract_month_date <= date_trunc('month', NOW()) AND emp_contracts_per_month.name != '[admin]'; --no admin.
+WHERE emp_contracts_per_month.contract_month <= date_trunc('month', NOW()) AND emp_contracts_per_month.name != '[admin]'; --no admin.
 
 
 
