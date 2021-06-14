@@ -681,118 +681,95 @@ WITH DATA;
 -- View: "{schemaname}".v_timetell_projectenoverzicht_7
 
 CREATE MATERIALIZED VIEW "{schemaname}".v_timetell_projectenoverzicht_7
-AS
-WITH w_project_adviseur AS (
-    SELECT
-        a.prj_id,
-        b.item_id as project_adviseur_emp_id,
-        b.item as project_adviseur_name
-    FROM "{schemaname}"."PRJ" a
-    JOIN "{schemaname}"."SYS_OPT_ITM" b ON b.item_id = a.prjcat
-    WHERE  b.opt_id = 32
-),
-w_basis_team_naam AS (
-    SELECT
-        lp.dim_id AS prj_id,
-        max(soi.item::text) AS basis_team_name
-    FROM "{schemaname}"."VW_LABEL_PRJ" lp
-    LEFT JOIN "{schemaname}"."SYS_OPT_ITM" soi ON lp.item_id = soi.item_id
-    WHERE to_char(lp.todate::timestamp with time zone, 'YYYYMMDD'::text) = '29991231'::text
-    GROUP BY lp.dim_id
-),
-w_laatste_projectleider AS (
-    WITH a AS (
-        SELECT prjpl.prj_id,
-        prjpl.emp_id,
-        emp.name AS prjl_name
-        FROM "{schemaname}"."PRJ_LINK" prjpl
-        LEFT JOIN "{schemaname}"."EMP" emp ON emp.emp_id = prjpl.emp_id
-        WHERE prjpl.prjleader = 1
-    ),
-    prj_pl AS (
-        SELECT a.prj_id, count(*) AS aantal
-        FROM a
-        GROUP BY a.prj_id
-    ),
-    b AS (
-        SELECT
-            h.prj_id,
+AS WITH w_project_adviseur AS (
+         SELECT a.prj_id,
+            b.item_id AS project_adviseur_emp_id,
+            b.item AS project_adviseur_name
+           FROM "{schemaname}"."PRJ" a
+             JOIN "{schemaname}"."SYS_OPT_ITM" b ON b.item_id = a.prjcat
+          WHERE b.opt_id = 32
+        ), w_basis_team_naam AS (
+         SELECT lp.dim_id AS prj_id,
+            max(soi.item::text) AS basis_team_name
+           FROM "{schemaname}"."VW_LABEL_PRJ" lp
+             LEFT JOIN "{schemaname}"."SYS_OPT_ITM" soi ON lp.item_id = soi.item_id
+          WHERE to_char(lp.todate::timestamp with time zone, 'YYYYMMDD'::text) = '29991231'::text
+          GROUP BY lp.dim_id
+        ), w_laatste_projectleider AS (
+         WITH a AS (
+                 SELECT prjpl.prj_id,
+                    prjpl.emp_id,
+                    emp.name AS prjl_name
+                   FROM "{schemaname}"."PRJ_LINK" prjpl
+                     LEFT JOIN "{schemaname}"."EMP" emp ON emp.emp_id = prjpl.emp_id
+                  WHERE prjpl.prjleader = 1
+                ), prj_pl AS (
+                 SELECT a.prj_id,
+                    count(*) AS aantal
+                   FROM a
+                  GROUP BY a.prj_id
+                ), b AS (
+                 SELECT h.prj_id,
+                    a.emp_id,
+                    max(h.date) AS max
+                   FROM a
+                     JOIN prj_pl pl2 ON a.prj_id = pl2.prj_id
+                     LEFT JOIN "{schemaname}"."HRS" h ON a.prj_id = h.prj_id AND a.emp_id = h.emp_id
+                  WHERE pl2.aantal > 1
+                  GROUP BY h.prj_id, a.emp_id
+                ), c AS (
+                 SELECT DISTINCT ON (b.prj_id) b.prj_id,
+                    b.emp_id
+                   FROM b
+                  ORDER BY b.prj_id, b.emp_id
+                )
+         SELECT a.prj_id,
             a.emp_id,
-            max(h.date) AS max
-        FROM a
-        JOIN prj_pl pl2 ON a.prj_id = pl2.prj_id
-        LEFT JOIN "{schemaname}"."HRS" h ON a.prj_id = h.prj_id AND a.emp_id = h.emp_id
-        WHERE pl2.aantal > 1
-        GROUP BY h.prj_id, a.emp_id
-    ),
-    c AS (
-        SELECT
-            DISTINCT ON (b.prj_id) b.prj_id,
-            b.emp_id
-        FROM b
-        ORDER BY b.prj_id, b.emp_id
-    )
-
-    SELECT
-        a.prj_id,
-        a.emp_id,
-        a.prjl_name
-    FROM a
-    JOIN c ON a.prj_id = c.prj_id AND a.emp_id = c.emp_id
-    UNION
-    SELECT
-        a.prj_id,
-        a.emp_id,
-        a.prjl_name
-    FROM a
-    JOIN prj_pl ON a.prj_id = prj_pl.prj_id
-    WHERE prj_pl.aantal = 1
-),
-w_emp_basis_team  as(
-    with emp_laatste_basis_team as (
-        with emp_laatste_basis_team_all as (
-            SELECT laatste.emp_id, laatste.maxtodate, eo2.org_id as laatste_org_id
-            FROM (
-                SELECT
-                    eo.emp_id,
-                    max(eo.todate) AS maxtodate
-                FROM "{schemaname}"."EMP_ORG" eo
-                JOIN "{schemaname}"."ORG" o ON eo.org_id=o.org_id
-                WHERE eo.type = 0
-                GROUP BY eo.emp_id
-            ) laatste
-            JOIN "{schemaname}"."EMP_ORG" eo2 on laatste.emp_id=eo2.emp_id and laatste.maxtodate=eo2.todate -- bij 2099 en 2999
-            where eo2.type = 0
+            a.prjl_name
+           FROM a
+             JOIN c ON a.prj_id = c.prj_id AND a.emp_id = c.emp_id
+        UNION
+         SELECT a.prj_id,
+            a.emp_id,
+            a.prjl_name
+           FROM a
+             JOIN prj_pl ON a.prj_id = prj_pl.prj_id
+          WHERE prj_pl.aantal = 1
+        ), w_emp_basis_team AS (
+         WITH emp_laatste_basis_team AS (
+                 WITH emp_laatste_basis_team_all AS (
+                         SELECT laatste.emp_id,
+                            laatste.maxtodate,
+                            eo2.org_id AS laatste_org_id
+                           FROM ( SELECT eo.emp_id,
+                                    max(eo.todate) AS maxtodate
+                                   FROM "{schemaname}"."EMP_ORG" eo
+                                     JOIN "{schemaname}"."ORG" o_1 ON eo.org_id = o_1.org_id
+                                  WHERE eo.type = 0
+                                  GROUP BY eo.emp_id) laatste
+                             JOIN "{schemaname}"."EMP_ORG" eo2 ON laatste.emp_id = eo2.emp_id AND laatste.maxtodate = eo2.todate
+                          WHERE eo2.type = 0
+                        )
+                 SELECT emp_laatste_basis_team_all.emp_id,
+                    emp_laatste_basis_team_all.maxtodate,
+                    emp_laatste_basis_team_all.laatste_org_id,
+                    count(*) AS aantal
+                   FROM emp_laatste_basis_team_all
+                  GROUP BY emp_laatste_basis_team_all.emp_id, emp_laatste_basis_team_all.maxtodate, emp_laatste_basis_team_all.laatste_org_id
+                  ORDER BY emp_laatste_basis_team_all.emp_id, emp_laatste_basis_team_all.maxtodate
+                )
+         SELECT sel.emp_id,
+            o.org_id,
+            o.name AS oname_toen,
+                CASE
+                    WHEN o.todate >= to_date('2099-12-31'::text, 'YYYY-MM-DD'::text) THEN o.name
+                    ELSE NULL::character varying
+                END AS oname_nu
+           FROM emp_laatste_basis_team sel
+             JOIN "{schemaname}"."ORG" o ON sel.laatste_org_id = o.org_id
+          ORDER BY sel.emp_id
         )
-
-        SELECT
-            emp_id,
-            maxtodate,
-            laatste_org_id,
-            count(*) AS aantal
-        FROM emp_laatste_basis_team_all
-        GROUP BY
-            emp_id,
-            maxtodate,
-            laatste_org_id
-        ORDER BY emp_id, maxtodate
-    )
-    SELECT
-        sel.emp_id,
-        o.org_id,
-        o.name as oname_toen,
-        CASE WHEN
-            o.todate>=to_date('2099-12-31', 'YYYY-MM-DD')
-            THEN o.name
-            ELSE null END
-        as oname_nu
-    FROM emp_laatste_basis_team sel
-    JOIN "{schemaname}"."ORG" o ON sel.laatste_org_id = o.org_id
-    order by sel.emp_id
-)
-
-SELECT
-    uren.hrs_date,
+ SELECT uren.hrs_date,
     uren.hrs_hours,
     uren.hrs_internalrate,
     uren.hrs_rate,
@@ -827,6 +804,7 @@ SELECT
     project.prj_name,
     project.calc_hours,
     project.calc_costs,
+    project.code,
     project."Project Nummer"
    FROM ( SELECT 0 AS prj_niv,
             a0.name AS prj_niv_name,
@@ -848,9 +826,10 @@ SELECT
             a0.name AS prj_name,
             a0.calc_hours,
             a0.calc_costs,
+            a0.code,
             a0.nr AS "Project Nummer"
            FROM "{schemaname}"."PRJ" a0
-		 	LEFT JOIN w_project_adviseur pa0 ON pa0.prj_id = a0.prj_id
+             LEFT JOIN w_project_adviseur pa0 ON pa0.prj_id = a0.prj_id
           WHERE a0.parent_id IS NULL
         UNION
          SELECT 1 AS prj_niv,
@@ -873,6 +852,7 @@ SELECT
             b1.name AS prj_name,
             b1.calc_hours,
             b1.calc_costs,
+            b1.code,
             b1.nr AS "Project Nummer"
            FROM "{schemaname}"."PRJ" a1
              LEFT JOIN "{schemaname}"."PRJ" b1 ON a1.prj_id = b1.parent_id
@@ -881,7 +861,7 @@ SELECT
              LEFT JOIN w_basis_team_naam btn1 ON btn1.prj_id = b1.prj_id
              LEFT JOIN w_project_adviseur pa1 ON pa1.prj_id = b1.prj_id
              LEFT JOIN "{schemaname}"."CUST" cust1 ON b1.cust_id = cust1.cust_id
-		 	WHERE a1.parent_id IS NULL
+          WHERE a1.parent_id IS NULL
         UNION
          SELECT 2 AS prj_niv,
             c2.name AS prj_niv_name,
@@ -903,6 +883,7 @@ SELECT
             c2.name AS prj_name,
             c2.calc_hours,
             c2.calc_costs,
+            c2.code,
             c2.nr AS "Project Nummer"
            FROM "{schemaname}"."PRJ" a2
              JOIN "{schemaname}"."PRJ" b2 ON a2.prj_id = b2.parent_id
@@ -911,7 +892,7 @@ SELECT
              LEFT JOIN w_basis_team_naam btn2 ON btn2.prj_id = b2.prj_id
              LEFT JOIN w_project_adviseur pa2 ON pa2.prj_id = b2.prj_id
              LEFT JOIN "{schemaname}"."CUST" cust2 ON c2.cust_id = cust2.cust_id
-			 where a2.parent_id IS NULL ) project
+          WHERE a2.parent_id IS NULL) project
      LEFT JOIN ( SELECT h.prj_id,
             h.date AS hrs_date,
             h.hours AS hrs_hours,
@@ -931,7 +912,7 @@ SELECT
            FROM "{schemaname}"."HRS" h
              JOIN "{schemaname}"."EMP" emp ON h.emp_id = emp.emp_id
              JOIN "{schemaname}"."ORG" org2 ON h.org_id = org2.org_id
-			JOIN w_emp_basis_team ebt on ebt.emp_id=h.emp_id
+             JOIN w_emp_basis_team ebt ON ebt.emp_id = h.emp_id
              JOIN "{schemaname}"."ACT" act ON h.act_id = act.act_id) uren ON project.prj_prj_id = uren.prj_id
 WITH DATA;
 
