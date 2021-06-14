@@ -825,6 +825,7 @@ SELECT
     project.fromdate,
     project.todate,
     project.prj_name,
+    project.code,
     project.calc_hours,
     project.calc_costs,
     project."Project Nummer"
@@ -846,6 +847,7 @@ SELECT
             a0.fromdate,
             a0.todate,
             a0.name AS prj_name,
+            a0.code,
             a0.calc_hours,
             a0.calc_costs,
             a0.nr AS "Project Nummer"
@@ -871,6 +873,7 @@ SELECT
             b1.fromdate,
             b1.todate,
             b1.name AS prj_name,
+            b1.code,
             b1.calc_hours,
             b1.calc_costs,
             b1.nr AS "Project Nummer"
@@ -901,6 +904,7 @@ SELECT
             c2.fromdate,
             c2.todate,
             c2.name AS prj_name,
+            c2.code,
             c2.calc_hours,
             c2.calc_costs,
             c2.nr AS "Project Nummer"
