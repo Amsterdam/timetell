@@ -443,7 +443,7 @@ CREATE TABLE IF NOT EXISTS "{schemaname}"."{tablename}" (
     item_id integer,
     opt_id integer,
     item character varying(50) COLLATE pg_catalog."default",
-    code character varying(10),
+    code character varying(20),
     updatelocal timestamp,
     calcid integer
 );
