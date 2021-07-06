@@ -850,10 +850,12 @@ SELECT
             a0.code,
             a0.calc_hours,
             a0.calc_costs,
-            a0.nr AS "Project Nummer"
+            a0.nr AS "Project Nummer",
+            soi0.item AS status_project
            FROM "{schemaname}"."PRJ" a0
 		 	LEFT JOIN w_project_adviseur pa0 ON pa0.prj_id = a0.prj_id
-          WHERE a0.parent_id IS NULL
+            LEFT JOIN "{schemaname}"."SYS_OPT_ITM" soi0 ON soi0.item_id = a0.status
+          WHERE a0.parent_id IS NULL and soi0.opt_id=11
         UNION
          SELECT 1 AS prj_niv,
             b1.name AS prj_niv_name,
@@ -876,7 +878,8 @@ SELECT
             b1.code,
             b1.calc_hours,
             b1.calc_costs,
-            b1.nr AS "Project Nummer"
+            b1.nr AS "Project Nummer",
+            soi1.item AS status_project
            FROM "{schemaname}"."PRJ" a1
              LEFT JOIN "{schemaname}"."PRJ" b1 ON a1.prj_id = b1.parent_id
              LEFT JOIN w_laatste_projectleider prjpl ON b1.prj_id = prjpl.prj_id
@@ -884,7 +887,8 @@ SELECT
              LEFT JOIN w_basis_team_naam btn1 ON btn1.prj_id = b1.prj_id
              LEFT JOIN w_project_adviseur pa1 ON pa1.prj_id = b1.prj_id
              LEFT JOIN "{schemaname}"."CUST" cust1 ON b1.cust_id = cust1.cust_id
-		 	WHERE a1.parent_id IS NULL
+             LEFT JOIN "{schemaname}"."SYS_OPT_ITM" soi1 ON soi1.item_id = b1.status
+		 	WHERE a1.parent_id IS NULL AND soi1.opt_id=11
         UNION
          SELECT 2 AS prj_niv,
             c2.name AS prj_niv_name,
@@ -907,7 +911,8 @@ SELECT
             c2.code,
             c2.calc_hours,
             c2.calc_costs,
-            c2.nr AS "Project Nummer"
+            c2.nr AS "Project Nummer",
+            soi2.item AS status_project
            FROM "{schemaname}"."PRJ" a2
              JOIN "{schemaname}"."PRJ" b2 ON a2.prj_id = b2.parent_id
              JOIN "{schemaname}"."PRJ" c2 ON b2.prj_id = c2.parent_id
@@ -915,7 +920,8 @@ SELECT
              LEFT JOIN w_basis_team_naam btn2 ON btn2.prj_id = b2.prj_id
              LEFT JOIN w_project_adviseur pa2 ON pa2.prj_id = b2.prj_id
              LEFT JOIN "{schemaname}"."CUST" cust2 ON c2.cust_id = cust2.cust_id
-			 where a2.parent_id IS NULL ) project
+             LEFT JOIN "{schemaname}"."SYS_OPT_ITM" soi2 ON soi2.item_id = c2.status
+			 where a2.parent_id IS NULL AND soi2.opt_id=11) project
      LEFT JOIN ( SELECT h.prj_id,
             h.date AS hrs_date,
             h.hours AS hrs_hours,
