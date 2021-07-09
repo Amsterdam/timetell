@@ -1667,7 +1667,7 @@ WITH emp_contracts AS (
 	    emp_contract.fromdate AS contract_from_date,
 	    emp_contract.todate AS contract_to_date,
 	    job.name AS job_name,
-	    ambition_group_opt.item AS ambitiegroep_name
+	    ambition_group_opt.item AS ambitiegroep_name,
         ambition_group_opt.code AS ambitiemanager_name
     FROM
 	    "{schemaname}"."EMP" as emp
