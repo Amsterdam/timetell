@@ -828,7 +828,8 @@ SELECT
     project.code,
     project.calc_hours,
     project.calc_costs,
-    project."Project Nummer"
+    project."Project Nummer",
+    project.status_project
    FROM ( SELECT 0 AS prj_niv,
             a0.name AS prj_niv_name,
             a0.name AS prj_niv0_name,
