@@ -1592,7 +1592,7 @@ FROM (
         pj.project_verantw,
         pl.prjl_name AS project_leader,
         pa.project_adviseur,
-        p.status AS status_project,
+        soi.item AS status_project,
         c_1.name AS cust_name,
         act.name AS act_name,
         tijdreeks.jaar,
@@ -1610,6 +1610,7 @@ FROM (
     LEFT JOIN "{schemaname}"."ACT" act ON p.act_id = act.act_id
     LEFT JOIN w_laatste_projectleider pl ON pl.prj_id = budget.prj_id
     LEFT JOIN w_project_adviseur pa ON pa.prj_id = budget.prj_id
+    LEFT JOIN "SYS_OPT_ITM" soi ON soi.item_id = p.status
 
     UNION ALL
 
@@ -1624,7 +1625,7 @@ FROM (
         a.project_verantw,
         a.project_leader,
         a.project_adviseur,
-        a.status_project,
+        soi.item AS status_project,
         a.cust_name,
         a.act_name,
         a.jaar,
@@ -1635,6 +1636,7 @@ FROM (
         COALESCE(bm.budget, 0::numeric)::double precision AS budget
     FROM actuals a
     LEFT JOIN budget_maand bm ON a.prj_id = bm.prj_id AND a.org_id = bm.org_id AND a.jaar = bm.jaar AND a.maand = bm.maand
+    LEFT JOIN "SYS_OPT_ITM" soi ON soi.item_id = a.status_project
 ) c
 GROUP BY
     c.prj_id,
