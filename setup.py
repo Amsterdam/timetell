@@ -52,7 +52,10 @@ setup(
         'pytest-runner'
     ],
     install_requires=[
-        'aiohttp',  # for downloading files from objectstore
+        # aiohttp below is pinned because higher versions of the lib are not compatible with python3.6 
+        # anymore, which is the highest installed python version on the db server on which this runs.
+        # TODO: The situation described above is not an acceptable situation, and should be fixed asap.
+        'aiohttp==3.8.1',  # for downloading files from objectstore. 
         'asyncpg',  # async postgres driver
         'uvloop<0.15.0',  # optional fast eventloop for asyncio
     ],
